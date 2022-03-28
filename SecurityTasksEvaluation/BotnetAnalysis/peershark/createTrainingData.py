@@ -1,4 +1,4 @@
-from P2P_CONSTANTS import *
+from .P2P_CONSTANTS import *
 
 
 def runTrainingDataGenerator(super_flow_data_dir, training_data_dir, bin_width, ipt_bin_width):

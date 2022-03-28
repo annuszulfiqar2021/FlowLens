@@ -1,4 +1,4 @@
-from Packet import *
+from .Packet import *
 
 #input: list of packets, timegap - real number
 #return val: list of flows
@@ -211,19 +211,19 @@ class Flow:
 	def getInterArrivaltime(self):
 		combined = (self.t_interarrival1+self.t_interarrival2).sort()
 		if len(combined) > 0:
-			return combined[len(combined)/2]
+			return combined[len(combined)//2]
 		return 0	
 	
 	def getInterArrivaltime1(self):
 		self.t_interarrival1.sort()
 		if len(self.t_interarrival1) > 0:
-			return self.t_interarrival1[len(self.t_interarrival1)/2]
+			return self.t_interarrival1[len(self.t_interarrival1)//2]
 		return 0
 
 	def getInterArrivaltime2(self):
 		self.t_interarrival2.sort()
 		if len(self.t_interarrival2) > 0:
-			return self.t_interarrival2[len(self.t_interarrival2)/2]
+			return self.t_interarrival2[len(self.t_interarrival2)//2]
 		return 0	
 	
 	def getNoOfBytes(self):

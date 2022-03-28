@@ -23,13 +23,13 @@ from peershark.generateSuperFlows import runGenerateSuperFlows
 from peershark.createTrainingData import runTrainingDataGenerator
 from quantize import QuantizeDataset
 
-data_location = "Data/"
+data_location = "/home/taurus/botnet-detection/FlowLens/SecurityTasksEvaluation/BotnetAnalysis/Data/"
 
 
 def Classify(binWidth, ipt_bin_width):
 	dataset_path = 'TrainingData/Datasets/Dataset_%s_%s.csv'%(binWidth, ipt_bin_width)
-	with open(dataset_path, 'rb') as dataset_file:
-		print "Loading Dataset: %s ..."%(dataset_path)
+	with open(dataset_path) as dataset_file:
+		print("Loading Dataset: %s ..."%(dataset_path))
 
 		attributes = []
 		labels = []
@@ -51,20 +51,20 @@ def Classify(binWidth, ipt_bin_width):
 		#start_train = time.time()
 		model = classifier.fit(np.asarray(train_x), np.asarray(train_y))
 		#end_train = time.time()
-		#print "Model trained in %ss"%(end_train-start_train)
+		#print("Model trained in %ss"%(end_train-start_train))
 
 		#for sample in test_x:
 		#	start_sample = time.time()
 		#	model.predict(np.asarray(sample).reshape((1,-1)))
 		#	end_sample = time.time()
-		#	print "Sample predicted in %ss"%(end_sample-start_sample)
+		#	print("Sample predicted in %ss"%(end_sample-start_sample))
 		
 		#Perform predictions
-		print "Predicting %s samples"%(len(test_x))
+		print("Predicting %s samples"%(len(test_x)))
 		#start_batch = time.time()
 		predictions = model.predict(np.asarray(test_x))
 		#end_batch = time.time()
-		#print "Batch predicted in %ss"%(end_batch-start_batch)
+		#print("Batch predicted in %ss"%(end_batch-start_batch))
 
 		#Generate metrics (benign)
 		TN, FP, FN, TP = confusion_matrix(np.asarray(test_y), predictions, labels=["malicious","benign"]).ravel()
@@ -72,9 +72,9 @@ def Classify(binWidth, ipt_bin_width):
 		RECALL_BENIGN = float(TP)/(float(TP) + float(FN))
 		PRECISION_BENIGN = float(TP)/(float(TP) + float(FP))
 
-		print "Model Precision (benign): " + "{0:.3f}".format(PRECISION_BENIGN)
-		print "Model Recall (benign): " + "{0:.3f}".format(RECALL_BENIGN)
-		print "Model FPR (benign): " + "{0:.3f}".format(FPR_BENIGN)
+		print("Model Precision (benign): " + "{0:.3f}".format(PRECISION_BENIGN))
+		print("Model Recall (benign): " + "{0:.3f}".format(RECALL_BENIGN))
+		print("Model FPR (benign): " + "{0:.3f}".format(FPR_BENIGN))
 		
 
 		#Generate metrics (malicious)
@@ -83,15 +83,15 @@ def Classify(binWidth, ipt_bin_width):
 		RECALL_MALICIOUS = float(TP)/(float(TP) + float(FN))
 		PRECISION_MALICIOUS = float(TP)/(float(TP) + float(FP))
 
-		print "Model Precision (malicious): " + "{0:.3f}".format(PRECISION_MALICIOUS)
-		print "Model Recall (malicious): " + "{0:.3f}".format(RECALL_MALICIOUS)
-		print "Model FPR (malicious): " + "{0:.3f}".format(FPR_MALICIOUS)
+		print("Model Precision (malicious): " + "{0:.3f}".format(PRECISION_MALICIOUS))
+		print("Model Recall (malicious): " + "{0:.3f}".format(RECALL_MALICIOUS))
+		print("Model FPR (malicious): " + "{0:.3f}".format(FPR_MALICIOUS))
 
 		results_file = open("classificationResults/results.csv","a") 
 		results_file.write("%s, %s, %s, %s, %s, %s, %s, %s\n"%(binWidth, ipt_bin_width, "{0:.3f}".format(PRECISION_BENIGN), "{0:.3f}".format(RECALL_BENIGN), "{0:.3f}".format(FPR_BENIGN), "{0:.3f}".format(PRECISION_MALICIOUS), "{0:.3f}".format(RECALL_MALICIOUS), "{0:.3f}".format(FPR_MALICIOUS)))
 		results_file.flush()
 		results_file.close()
-		print ""
+		print("")
 
 
 def GenerateDataset(datasets, binWidth, ipt_bin_width):
@@ -107,7 +107,7 @@ def GenerateDataset(datasets, binWidth, ipt_bin_width):
 	with open('TrainingData/Datasets/Dataset_%s_%s.csv'%(binWidth, ipt_bin_width), "w") as out_dataset:
 		out_dataset.write("NumberOfPackets,TotalBytesTransmitted,MedianIPT,ConversationDuration,class\n")
 		for fname in datasets_to_merge:
-			with open(fname, 'rb') as infile:
+			with open(fname) as infile:
 				csv_reader = csv.reader(infile)
 				for row in csv_reader:
 					new_row = row
@@ -119,29 +119,26 @@ def GenerateDataset(datasets, binWidth, ipt_bin_width):
 
 
 def RunPeerShark(quantized_pcap_data_dir, flow_data_dir, super_flow_data_dir, training_data_dir, bin_width, ipt_bin_width):
-	#create a semaphore so as not to exceed threadlimit
-	n_processes = 4
-
 	#Set TIMEGAP 
 	timegap = 2000
 
-	print "Generating Flows with TIMEGAP = %s"%(timegap)
-	runGenerateFlows(quantized_pcap_data_dir, flow_data_dir, n_processes, timegap)
+	print("Generating Flows with TIMEGAP = %s"%(timegap))
+	runGenerateFlows(quantized_pcap_data_dir, flow_data_dir, timegap)
 
 	#Set FLOWGAP in seconds
 	flowgap = 3600
 
-	print "Generating SuperFlows with FLOWGAP = %s"%(flowgap)
+	print("Generating SuperFlows with FLOWGAP = %s"%(flowgap))
 	runGenerateSuperFlows(flow_data_dir, super_flow_data_dir, flowgap)
 
-	print "Generating Training Data..."
+	print("Generating Training Data...")
 	runTrainingDataGenerator(super_flow_data_dir, training_data_dir, bin_width, ipt_bin_width)
 
 
 def Experiment(datasets, bin_width, ipt_bin_width):
 
 	if not os.path.exists('FeatureSets'):
-				os.makedirs('FeatureSets')
+		os.makedirs('FeatureSets')
 
 	#Quantize datasets according to bin width
 	#Generate training sets for quantization
@@ -163,22 +160,20 @@ def Experiment(datasets, bin_width, ipt_bin_width):
 		if not os.path.exists('TrainingData/' + os.path.basename(dataset)):
 			os.makedirs('TrainingData/' + os.path.basename(dataset))
 
-
-		print "Quantizing %s with BinWidth = %s and IPT_BinWidth = %s"% (dataset, binWidth, ipt_bin_width)
-		n_processes = 4
-		QuantizeDataset(dataset, bin_width, ipt_bin_width, n_processes)
+		print("Quantizing %s with BinWidth = %s and IPT_BinWidth = %s"% (dataset, binWidth, ipt_bin_width))
+		QuantizeDataset(dataset, bin_width, ipt_bin_width)
 		RunPeerShark(quantized_pcap_data_dir, flow_data_dir, superflow_data_dir, training_data_dir, bin_width, ipt_bin_width)
 
-	print "Building Dataset..."
+	print("Building Dataset...")
 	GenerateDataset(datasets, binWidth, ipt_bin_width)
 
-	print "Performing Classification..."
+	print("Performing Classification...")
 	Classify(binWidth, ipt_bin_width)
 	
 	start_collect = time.time()
 	collected = gc.collect()
 	end_collect = time.time()
-	print "Time wasted on GC - Classification: %ss, collected %s objects"%(end_collect-start_collect, collected)
+	print("Time wasted on GC - Classification: %ss, collected %s objects"%(end_collect-start_collect, collected))
 
 	shutil.rmtree('FeatureSets')
 	shutil.rmtree('FlowData')
@@ -186,13 +181,11 @@ def Experiment(datasets, bin_width, ipt_bin_width):
 	shutil.rmtree('TrainingData')
 
 
-
 if __name__ == "__main__":
-	
 	DATASETS = [
-	data_location + "Waledac",
-	data_location + "Storm",
-	data_location + "P2PTraffic"
+		data_location + "P2PTraffic",
+		data_location + "Storm",
+		data_location + "Waledac"
 	]
 
 	###
@@ -214,14 +207,13 @@ if __name__ == "__main__":
 	results_file.flush()
 	results_file.close()
 	
-
 	binWidth = int(sys.argv[1])
 	ipt_bin_width = int(sys.argv[2])
 
-	print "Starting experiment with Bin width %s and IPT Bin Width %s"%(binWidth, ipt_bin_width)
+	print("Starting experiment with Bin width %s and IPT Bin Width %s"%(binWidth, ipt_bin_width))
 	start_time = time.time()
 	Experiment(DATASETS, binWidth, ipt_bin_width)
 	end_time = time.time()
 	time_elapsed_seconds = end_time - start_time
-	print "Experiment finished in %sh\n"%("{0:.2f}".format(time_elapsed_seconds/60.0/60.0))
+	print("Experiment finished in %sh\n"%("{0:.2f}".format(time_elapsed_seconds/60.0/60.0)))
 

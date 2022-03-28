@@ -1,6 +1,6 @@
-from Packet import *
+from .Packet import *
 import socket
-import Flow
+from . import Flow
 
 #get median of interarrival time
 def getMedian(vallist):

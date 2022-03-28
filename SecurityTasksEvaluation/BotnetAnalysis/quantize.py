@@ -32,10 +32,8 @@ WALEDAC_IPS = [
 	]
 
 
-def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width, sem):
-	sem.acquire()
-
-	cap_file = open(dataset + "/" + traffic_capture, 'rb')
+def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width):
+	cap_file = open(dataset + "/" + traffic_capture)
 	csv_reader = csv.reader(cap_file, delimiter=',')
 
 	quantized_csv = open('FeatureSets/' + os.path.basename(dataset) + "/" + traffic_capture[:-4] + "_" + str(binWidth) + "_" + str(ipt_bin_width) + ".csv", "w")
@@ -46,15 +44,15 @@ def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width, sem):
 	elif(os.path.basename(dataset) == "Waledac"):
 		malicious_ips = WALEDAC_IPS
 
-	#print "Malicious IPs = %s"%(malicious_ips)
-	#print os.path.basename(dataset)
+	#print("Malicious IPs = %s"%(malicious_ips))
+	#print(os.path.basename(dataset))
 
 	to_write = []
 	#Write modified packets
 	for row in csv_reader:
 		#Filter out non-malicious flows from Storm and Waledac datasets
 		if(("Storm" in os.path.basename(dataset) or "Waledac" in os.path.basename(dataset)) and (row[0] not in malicious_ips and row[1] not in malicious_ips)):
-			#print "Row not in malicious: %s - %s"%(row[0], row[1])
+			#print("Row not in malicious: %s - %s"%(row[0], row[1]))
 			continue
 		else:
 			new_row = row
@@ -75,26 +73,25 @@ def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width, sem):
 	#start_collect = time.time()
 	#collected = gc.collect()
 	#end_collect = time.time()
-	#print "Time wasted on GC - Quantize: %ss, collected %s objects"%(end_collect-start_collect, collected)
-	sem.release()
+	#print("Time wasted on GC - Quantize: %ss, collected %s objects"%(end_collect-start_collect, collected))
 
-
-def QuantizeDataset(dataset, binWidth, ipt_bin_width, n_processes):
-	sem = MP.Semaphore(n_processes)
+def QuantizeDataset(dataset, binWidth, ipt_bin_width):
 	traffic_captures = os.listdir(dataset)
-
-	tasklist = []
-
+	arguments = []
 	for traffic_capture in traffic_captures:
-		task = MP.Process(target = runQuantization, args = (dataset, traffic_capture, binWidth, ipt_bin_width, sem))
-		tasklist.append(task)
+		arguments.append((dataset, traffic_capture, binWidth, ipt_bin_width))
+	print("Tasklist size = %s"%(len(arguments)))
+	print("Task List = {0}".format(arguments))
+	# spawn a pool of processes
+	print(f"Starting quantization on {MP.cpu_count()} cores")
+	# https://zetcode.com/python/multiprocessing/
+	with MP.Pool() as pool:
+		pool.starmap(runQuantization, arguments)
 
-	print "Tasklist size = %s"%(len(tasklist))
-
-	# #execute commands in parallel
-	for i in range(0, len(tasklist), n_processes):
-		for k,task in enumerate(tasklist[i:i+n_processes]):
-			tasklist[i+k].start()
-		for k, task in enumerate(tasklist[i:i+n_processes]):
-			tasklist[i+k].join()
-			#print "Joined task number %s"%(i+k)
+	# # #execute commands in parallel
+	# for i in range(0, len(tasklist), n_processes):
+	# 	for k,task in enumerate(tasklist[i:i+n_processes]):
+	# 		tasklist[i+k].start()
+	# 	for k, task in enumerate(tasklist[i:i+n_processes]):
+	# 		tasklist[i+k].join()
+	# 		#print("Joined task number %s"%(i+k))

@@ -1,0 +1,3 @@
+/home/taurus/botnet-detection/FlowLens/SecurityTasksEvaluation/BotnetAnalysis/TrafficCaptures/P2PTraffic
+/home/taurus/botnet-detection/FlowLens/SecurityTasksEvaluation/BotnetAnalysis/TrafficCaptures/Storm
+/home/taurus/botnet-detection/FlowLens/SecurityTasksEvaluation/BotnetAnalysis/TrafficCaptures/Waledac

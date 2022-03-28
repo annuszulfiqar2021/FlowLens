@@ -1,7 +1,7 @@
-from P2P_CONSTANTS import *
+from .P2P_CONSTANTS import *
 import socket
-import Flow
-import SuperFlow
+from . import Flow
+from . import SuperFlow
 import sys
 
 
@@ -19,11 +19,11 @@ def runGenerateSuperFlows(flow_data_dir, super_flow_data_dir, flowgap):
 		for eachline in data:
 			fields = eachline.split(',')
 			flowdata.append(SuperFlow.SuperFlow(fields))
-	print '\tNo. of flows to be processed: ' + str(len(flowdata))
+	print('\tNo. of flows to be processed: ' + str(len(flowdata)))
 
 	
 	flowdata = Flow.combineFlows(flowdata, flowgap)
-	print '\tSuperflows (Flows with flowgap = ' + str(flowgap) + ' sec) : ' + str(len(flowdata))
+	print('\tSuperflows (Flows with flowgap = ' + str(flowgap) + ' sec) : ' + str(len(flowdata)))
 
 	outfile = open(super_flow_data_dir + str(flowgap) + '.csv', 'w')
 	
