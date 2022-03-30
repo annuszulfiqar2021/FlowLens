@@ -22,7 +22,7 @@ def CreateBinaryVectorRepresentation(BIN_WIDTH, TOPK, SKETCH_SIZE):
                     random_base_vector = (2*np.random.randint(0,2,size=(real_bucket_number))-1)
                     random_base_vectors.append(random_base_vector)
 
-                n_bits = range(0, sketch_size)
+                n_bits = list(range(0, sketch_size))
 
                 """
                 Process Phase 1 Data
@@ -32,7 +32,7 @@ def CreateBinaryVectorRepresentation(BIN_WIDTH, TOPK, SKETCH_SIZE):
                 data_folder = 'FeatureSets/' + feature_set + '/'
 
                 #Regular Traffic
-                print "Online_Sketch: Phase 1, Regular - " + feature_set + "/Online_regularTraffic_phase1_" + str(sketch_size) + "_dataset.csv"
+                print("Online_Sketch: Phase 1, Regular - " + feature_set + "/Online_regularTraffic_phase1_" + str(sketch_size) + "_dataset.csv")
                 output = open(data_folder + "Online_regularTraffic_phase1_" + str(sketch_size) + "_dataset.csv", "w") 
                 f = open(data_folder + "RegularTraffic_phase1_dataset.csv", 'r')
                 reader = csv.reader(f, delimiter=',')
@@ -70,7 +70,7 @@ def CreateBinaryVectorRepresentation(BIN_WIDTH, TOPK, SKETCH_SIZE):
 
 
                 #DeltaShaper Traffic
-                print "Online_Sketch: Phase 1, DeltaShaper - " + feature_set + "/Online_deltashaperTraffic_phase1_" + str(sketch_size) + "_dataset.csv"
+                print("Online_Sketch: Phase 1, DeltaShaper - " + feature_set + "/Online_deltashaperTraffic_phase1_" + str(sketch_size) + "_dataset.csv")
                 output = open(data_folder + "Online_deltashaperTraffic_phase1_" + str(sketch_size) + "_dataset.csv", "w") 
                 f = open(data_folder + "DeltaShaperTraffic_320_phase1_dataset.csv", 'r')
                 reader = csv.reader(f, delimiter=',')
@@ -119,7 +119,7 @@ def CreateBinaryVectorRepresentation(BIN_WIDTH, TOPK, SKETCH_SIZE):
                 data_folder = 'FeatureSets/' + feature_set + '/'
 
                 #Regular Traffic
-                print "Online_Sketch: Phase 2, Regular - " + feature_set + "/Online_regularTraffic_phase2_" + str(sketch_size) + "_dataset.csv"
+                print("Online_Sketch: Phase 2, Regular - " + feature_set + "/Online_regularTraffic_phase2_" + str(sketch_size) + "_dataset.csv")
                 output = open(data_folder + "Online_regularTraffic_phase2_" + str(sketch_size) + "_dataset.csv", "w") 
                 f = open(data_folder + "RegularTraffic_phase2_dataset.csv", 'r')
                 reader = csv.reader(f, delimiter=',')
@@ -157,7 +157,7 @@ def CreateBinaryVectorRepresentation(BIN_WIDTH, TOPK, SKETCH_SIZE):
 
 
                 #DeltaShaper Traffic
-                print "Online_Sketch: Phase 2, DeltaShaper - " + feature_set + "/Online_deltashaperTraffic_phase2_" + str(sketch_size) + "_dataset.csv"
+                print("Online_Sketch: Phase 2, DeltaShaper - " + feature_set + "/Online_deltashaperTraffic_phase2_" + str(sketch_size) + "_dataset.csv")
                 output = open(data_folder + "Online_deltashaperTraffic_phase2_" + str(sketch_size) + "_dataset.csv", "w") 
                 f = open(data_folder + "DeltaShaperTraffic_320_phase2_dataset.csv", 'r')
                 reader = csv.reader(f, delimiter=',')

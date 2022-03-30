@@ -7,10 +7,11 @@
 ## usage: python FilterPackets.py
 
 #import global constants
-from P2P_CONSTANTS import *
 from FilterPacketsHelper import *
 import multiprocessing as MP
+from P2P_CONSTANTS import *
 import subprocess
+
 
 #execute a shell command as a child process
 def executeCommand(command, outfilename):

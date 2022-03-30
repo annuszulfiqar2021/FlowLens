@@ -1,5 +1,6 @@
 from P2P_CONSTANTS import *
 import os
+
 #return a list of filenames of pcapfiles taken from InputFiles.txt
 #if a directory is found then all *.pcap files in the directory are
 #included(non-recursive)
@@ -21,7 +22,7 @@ def getPCapFileNames():
 			if os.path.isdir(eachline):
 				for eachfile in os.listdir(eachline):
 					if eachfile.endswith('.pcap'):
-						pcapfilenames.append(eachline.rstrip('/') + '/' + eachfile)
+						pcapfilenames.append(os.path.join(eachline.rstrip('/'), eachfile))
 			else:
 				print(eachline + ' is not a directory')
 				exit()
@@ -43,7 +44,7 @@ def contructTsharkCommand(filename, tsharkOptions):
 		command = command + eachstring + ' '
 	#construct output filename
 	outfilename = filename.split('/')
-	outfilename = PCAPDATADIR + outfilename[len(outfilename)-1] + '.csv'
+	outfilename = os.path.join(PCAPDATADIR, outfilename[len(outfilename)-1] + '.csv')
 	command += '>'+outfilename
 	return (command, outfilename)
 

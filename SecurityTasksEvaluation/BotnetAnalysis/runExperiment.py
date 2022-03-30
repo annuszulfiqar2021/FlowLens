@@ -1,35 +1,33 @@
-import os
-import sys
-import math
-import subprocess as sub
-import shutil
-import csv
-import numpy as np
-import multiprocessing as MP
-import time
+from peershark.createTrainingData import runTrainingDataGenerator
+from peershark.generateSuperFlows import runGenerateSuperFlows
+from peershark.GenerateFlows import runGenerateFlows
+from quantize import QuantizeDataset
 
-import gc
+from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
+from joblib import dump, load
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier
-from joblib import dump, load
+import multiprocessing as MP
+import subprocess as sub
+import numpy as np
+import argparse
+import shutil
+import time
+import math
+import sys
+import csv
+import gc
+import os
 
-from peershark.GenerateFlows import runGenerateFlows
-from peershark.generateSuperFlows import runGenerateSuperFlows
-from peershark.createTrainingData import runTrainingDataGenerator
-from quantize import QuantizeDataset
 
-data_location = "/home/taurus/botnet-detection/FlowLens/SecurityTasksEvaluation/BotnetAnalysis/Data/"
-
-
-def Classify(binWidth, ipt_bin_width):
-	dataset_path = 'TrainingData/Datasets/Dataset_%s_%s.csv'%(binWidth, ipt_bin_width)
+def Classify(parentdir, training_data_dir, binWidth, ipt_bin_width):
+	dataset_path = os.path.join(training_data_dir, 'Datasets', 'Dataset_{0}_{1}.csv'.format(binWidth, ipt_bin_width))
 	with open(dataset_path) as dataset_file:
-		print("Loading Dataset: %s ..."%(dataset_path))
+		print("Loading Dataset: {0} ...".format(dataset_path))
 
 		attributes = []
 		labels = []
@@ -60,7 +58,7 @@ def Classify(binWidth, ipt_bin_width):
 		#	print("Sample predicted in %ss"%(end_sample-start_sample))
 		
 		#Perform predictions
-		print("Predicting %s samples"%(len(test_x)))
+		print("Predicting {0} samples".format(len(test_x)))
 		#start_batch = time.time()
 		predictions = model.predict(np.asarray(test_x))
 		#end_batch = time.time()
@@ -87,24 +85,33 @@ def Classify(binWidth, ipt_bin_width):
 		print("Model Recall (malicious): " + "{0:.3f}".format(RECALL_MALICIOUS))
 		print("Model FPR (malicious): " + "{0:.3f}".format(FPR_MALICIOUS))
 
-		results_file = open("classificationResults/results.csv","a") 
-		results_file.write("%s, %s, %s, %s, %s, %s, %s, %s\n"%(binWidth, ipt_bin_width, "{0:.3f}".format(PRECISION_BENIGN), "{0:.3f}".format(RECALL_BENIGN), "{0:.3f}".format(FPR_BENIGN), "{0:.3f}".format(PRECISION_MALICIOUS), "{0:.3f}".format(RECALL_MALICIOUS), "{0:.3f}".format(FPR_MALICIOUS)))
+		results_file = open(os.path.join(parentdir, "classificationResults", "results.csv"), "a")
+		results_file.write("{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n".format(
+																			binWidth, 
+																			ipt_bin_width, 
+																			"{0:.3f}".format(PRECISION_BENIGN), 
+																			"{0:.3f}".format(RECALL_BENIGN), 
+																			"{0:.3f}".format(FPR_BENIGN), 
+																			"{0:.3f}".format(PRECISION_MALICIOUS), 
+																			"{0:.3f}".format(RECALL_MALICIOUS), 
+																			"{0:.3f}".format(FPR_MALICIOUS)
+																			))
 		results_file.flush()
 		results_file.close()
 		print("")
 
 
-def GenerateDataset(datasets, binWidth, ipt_bin_width):
-	if not os.path.exists('TrainingData/Datasets'):
-				os.makedirs('TrainingData/Datasets')
+def GenerateDataset(datasets, training_data_dir, binWidth, ipt_bin_width):
+	if not os.path.exists(os.path.join(training_data_dir, 'Datasets')):
+		os.makedirs(os.path.join(training_data_dir, 'Datasets'))
 	
 	datasets_to_merge = []
 	for dataset in datasets:
 		dataset = os.path.basename(dataset)
-		datasets_to_merge.append('TrainingData/%s/trainingdata_%s_%s.csv'%(dataset, binWidth, ipt_bin_width))
+		datasets_to_merge.append(os.path.join(training_data_dir, dataset, 'trainingdata_{0}_{1}.csv'.format(binWidth, ipt_bin_width)))
 
 	#Merge datasets in a single file
-	with open('TrainingData/Datasets/Dataset_%s_%s.csv'%(binWidth, ipt_bin_width), "w") as out_dataset:
+	with open(os.path.join(training_data_dir, 'Datasets', 'Dataset_{0}_{1}.csv'.format(binWidth, ipt_bin_width)), "w") as out_dataset:
 		out_dataset.write("NumberOfPackets,TotalBytesTransmitted,MedianIPT,ConversationDuration,class\n")
 		for fname in datasets_to_merge:
 			with open(fname) as infile:
@@ -119,101 +126,114 @@ def GenerateDataset(datasets, binWidth, ipt_bin_width):
 
 
 def RunPeerShark(quantized_pcap_data_dir, flow_data_dir, super_flow_data_dir, training_data_dir, bin_width, ipt_bin_width):
-	#Set TIMEGAP 
+	# Set TIMEGAP
 	timegap = 2000
-
-	print("Generating Flows with TIMEGAP = %s"%(timegap))
-	runGenerateFlows(quantized_pcap_data_dir, flow_data_dir, timegap)
-
-	#Set FLOWGAP in seconds
+	print("Generating Flows with TIMEGAP = {0}".format(timegap))
+	runGenerateFlows(quantized_pcap_data_dir, flow_data_dir, timegap, bin_width, ipt_bin_width)
+	# Set FLOWGAP in seconds
 	flowgap = 3600
-
-	print("Generating SuperFlows with FLOWGAP = %s"%(flowgap))
-	runGenerateSuperFlows(flow_data_dir, super_flow_data_dir, flowgap)
-
+	print("Generating SuperFlows with FLOWGAP = {0}".format(flowgap))
+	runGenerateSuperFlows(flow_data_dir, super_flow_data_dir, flowgap, bin_width, ipt_bin_width)
 	print("Generating Training Data...")
 	runTrainingDataGenerator(super_flow_data_dir, training_data_dir, bin_width, ipt_bin_width)
 
 
-def Experiment(datasets, bin_width, ipt_bin_width):
+def Experiment(parentdir, datasets, bin_width, ipt_bin_width, do_cleanup):
+	featuresets_dir 	= os.path.join(parentdir, 'FeatureSets')
+	flow_data_dir 		= os.path.join(parentdir, 'FlowData')
+	superflow_data_dir 	= os.path.join(parentdir, 'SuperFlowData')
+	training_data_dir 	= os.path.join(parentdir, 'TrainingData')
 
-	if not os.path.exists('FeatureSets'):
-		os.makedirs('FeatureSets')
-
+	if not os.path.exists(featuresets_dir):
+		os.makedirs(featuresets_dir)
+	
 	#Quantize datasets according to bin width
 	#Generate training sets for quantization
 	for dataset in datasets:
-		quantized_pcap_data_dir = 'FeatureSets/' + os.path.basename(dataset) + "/"
-		flow_data_dir = 'FlowData/' + os.path.basename(dataset) + "/"
-		superflow_data_dir = 'SuperFlowData/' + os.path.basename(dataset) + "/"
-		training_data_dir = 'TrainingData/' + os.path.basename(dataset) + "/"
+		quantized_pcap_dataset_dir 	= os.path.join(featuresets_dir, os.path.basename(dataset))
+		flow_dataset_dir 			= os.path.join(flow_data_dir, os.path.basename(dataset))
+		superflow_dataset_dir 		= os.path.join(superflow_data_dir, os.path.basename(dataset))
+		training_dataset_dir 		= os.path.join(training_data_dir, os.path.basename(dataset))
 
-		if not os.path.exists('FeatureSets/' + os.path.basename(dataset)):
-			os.makedirs('FeatureSets/' + os.path.basename(dataset))
+		if not os.path.exists(quantized_pcap_dataset_dir):
+			os.makedirs(quantized_pcap_dataset_dir)
 		
-		if not os.path.exists('FlowData/' + os.path.basename(dataset)):
-			os.makedirs('FlowData/' + os.path.basename(dataset))
+		if not os.path.exists(flow_dataset_dir):
+			os.makedirs(flow_dataset_dir)
 		
-		if not os.path.exists('SuperFlowData/' + os.path.basename(dataset)):
-			os.makedirs('SuperFlowData/' + os.path.basename(dataset))
+		if not os.path.exists(superflow_dataset_dir):
+			os.makedirs(superflow_dataset_dir)
 		
-		if not os.path.exists('TrainingData/' + os.path.basename(dataset)):
-			os.makedirs('TrainingData/' + os.path.basename(dataset))
+		if not os.path.exists(training_dataset_dir):
+			os.makedirs(training_dataset_dir)
 
-		print("Quantizing %s with BinWidth = %s and IPT_BinWidth = %s"% (dataset, binWidth, ipt_bin_width))
-		QuantizeDataset(dataset, bin_width, ipt_bin_width)
-		RunPeerShark(quantized_pcap_data_dir, flow_data_dir, superflow_data_dir, training_data_dir, bin_width, ipt_bin_width)
+		print(">> Quantizing {0} with BinWidth = {1} and IPT_BinWidth = {2}".format(dataset, bin_width, ipt_bin_width))
+		QuantizeDataset(dataset, quantized_pcap_dataset_dir, bin_width, ipt_bin_width)
+		RunPeerShark(quantized_pcap_dataset_dir, flow_dataset_dir, superflow_dataset_dir, training_dataset_dir, bin_width, ipt_bin_width)
 
+	print("################################################################################################################################################")
 	print("Building Dataset...")
-	GenerateDataset(datasets, binWidth, ipt_bin_width)
-
+	GenerateDataset(datasets, training_data_dir, bin_width, ipt_bin_width)
+	print("################################################################################################################################################")	
 	print("Performing Classification...")
-	Classify(binWidth, ipt_bin_width)
+	Classify(parentdir, training_data_dir, bin_width, ipt_bin_width)
+	print("################################################################################################################################################")	
 	
 	start_collect = time.time()
 	collected = gc.collect()
 	end_collect = time.time()
-	print("Time wasted on GC - Classification: %ss, collected %s objects"%(end_collect-start_collect, collected))
+	print("Time wasted on GC - Classification: {0}s, collected {1} objects".format(end_collect-start_collect, collected))
 
-	shutil.rmtree('FeatureSets')
-	shutil.rmtree('FlowData')
-	shutil.rmtree('SuperFlowData')
-	shutil.rmtree('TrainingData')
+	if do_cleanup:
+		shutil.rmtree(featuresets_dir)
+		shutil.rmtree(flow_data_dir)
+		shutil.rmtree(superflow_data_dir)
+		shutil.rmtree(training_data_dir)
 
-
-if __name__ == "__main__":
-	DATASETS = [
-		data_location + "P2PTraffic",
-		data_location + "Storm",
-		data_location + "Waledac"
-	]
-
+def main(args):
 	###
 	#The following parameters are now fed by the fullRun.sh shell script
 	# Please run fullRun.sh instead of this file directly
 	###
-
 	#Quantization (packet size)
 	#BIN_WIDTH = [1, 16, 32, 64, 128, 256]
-	
+
 	#Quantization (IPT in seconds)
 	#TIMEGAP IS 2000s, FLOWGAP IS 3600s
 	#IPT_BIN_WIDTH = [0, 1, 10, 60, 300, 900]
-
-	if not os.path.exists("classificationResults"):
-		os.makedirs("classificationResults")
-	results_file = open("classificationResults/results.csv","a+") 
+	
+	print(args)
+	parent_dir = args["parentdir"]
+	dataset_dir = os.path.join(parent_dir, "Data")
+	dataset_dirs = [
+		os.path.join(dataset_dir, "P2PTraffic"),
+		os.path.join(dataset_dir, "Storm"),
+		os.path.join(dataset_dir, "Waledac")
+	]
+	classification_dir = os.path.join(parent_dir, "classificationResults")
+	if not os.path.exists(classification_dir):
+		os.makedirs(classification_dir)
+	results_file = open(os.path.join(classification_dir, "results.csv"), "a+") 
 	results_file.write("BinWidth, IPT_BinWidth, Precision_Benign, Recall_Benign, FalsePositiveRate_Benign, Precision_Malicious, Recall_Malicious, FalsePositiveRate_Malicious\n")
 	results_file.flush()
 	results_file.close()
 	
-	binWidth = int(sys.argv[1])
-	ipt_bin_width = int(sys.argv[2])
-
-	print("Starting experiment with Bin width %s and IPT Bin Width %s"%(binWidth, ipt_bin_width))
+	print("Starting experiment with Bin width {0} and IPT Bin Width {1}".format(args["QL_PL"], args["QL_IPT"]))
 	start_time = time.time()
-	Experiment(DATASETS, binWidth, ipt_bin_width)
+	Experiment(parent_dir, dataset_dirs, args["QL_PL"], args["QL_IPT"], args["do_cleanup"])
 	end_time = time.time()
 	time_elapsed_seconds = end_time - start_time
-	print("Experiment finished in %sh\n"%("{0:.2f}".format(time_elapsed_seconds/60.0/60.0)))
+	print("Experiment finished in {0:.2f}h\n".format(time_elapsed_seconds/60.0/60.0))
+
+
+if __name__ == "__main__":
+	CLI = argparse.ArgumentParser()
+	CLI.add_argument("--parentdir", type=str)
+	CLI.add_argument("--QL_PL", type=int)
+	CLI.add_argument("--QL_IPT", type=int)
+	CLI.add_argument("--do_cleanup", action='store_true')
+	args = vars(CLI.parse_args())
+	main(args)
+
+	
 

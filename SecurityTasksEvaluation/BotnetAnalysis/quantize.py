@@ -1,9 +1,9 @@
-import os
-import csv
 import multiprocessing as MP
 import socket
-import gc
 import time
+import csv
+import gc
+import os
 
 def RoundToNearest(n, m):
 		r = n % m
@@ -32,11 +32,11 @@ WALEDAC_IPS = [
 	]
 
 
-def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width):
-	cap_file = open(dataset + "/" + traffic_capture)
+def runQuantization(dataset, traffic_capture, quantized_pcap_dataset_dir, binWidth, ipt_bin_width):
+	cap_file = open(os.path.join(dataset, traffic_capture))
 	csv_reader = csv.reader(cap_file, delimiter=',')
 
-	quantized_csv = open('FeatureSets/' + os.path.basename(dataset) + "/" + traffic_capture[:-4] + "_" + str(binWidth) + "_" + str(ipt_bin_width) + ".csv", "w")
+	quantized_csv = open(os.path.join(quantized_pcap_dataset_dir, traffic_capture[:-4] + "_" + str(binWidth) + "_" + str(ipt_bin_width) + ".csv"), "w")
 
 	malicious_ips = []
 	if(os.path.basename(dataset) == "Storm"):
@@ -44,25 +44,27 @@ def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width):
 	elif(os.path.basename(dataset) == "Waledac"):
 		malicious_ips = WALEDAC_IPS
 
-	#print("Malicious IPs = %s"%(malicious_ips))
-	#print(os.path.basename(dataset))
+	# print("Malicious IPs = %s"%(malicious_ips))
+	# print(os.path.basename(dataset))
 
 	to_write = []
 	#Write modified packets
 	for row in csv_reader:
-		#Filter out non-malicious flows from Storm and Waledac datasets
+		# Filter out non-malicious flows from Storm and Waledac datasets
 		if(("Storm" in os.path.basename(dataset) or "Waledac" in os.path.basename(dataset)) and (row[0] not in malicious_ips and row[1] not in malicious_ips)):
 			#print("Row not in malicious: %s - %s"%(row[0], row[1]))
 			continue
 		else:
 			new_row = row
 			
-			#Quantize packet size
-			new_row[4] = str(RoundToNearest(int(new_row[4]), binWidth))
+			# Quantize packet size
+			# new_row[4] = str(RoundToNearest(int(new_row[4]), binWidth))
+			new_row[4] = str(int(new_row[4]) // binWidth)
 
-			#Quantize Timestamp
+			# Quantize Timestamp
 			if(ipt_bin_width > 0):
-				new_row[3] = str(RoundToNearest(int(float(new_row[3])), ipt_bin_width))
+				# new_row[3] = str(RoundToNearest(int(float(new_row[3])), ipt_bin_width))
+				new_row[3] = str(int(float(new_row[3])) // ipt_bin_width)
 			to_write.append(",".join(new_row))
 	
 	quantized_csv.write("\n".join(to_write))
@@ -75,15 +77,15 @@ def runQuantization(dataset, traffic_capture, binWidth, ipt_bin_width):
 	#end_collect = time.time()
 	#print("Time wasted on GC - Quantize: %ss, collected %s objects"%(end_collect-start_collect, collected))
 
-def QuantizeDataset(dataset, binWidth, ipt_bin_width):
+def QuantizeDataset(dataset, quantized_pcap_dataset_dir, binWidth, ipt_bin_width):
 	traffic_captures = os.listdir(dataset)
 	arguments = []
 	for traffic_capture in traffic_captures:
-		arguments.append((dataset, traffic_capture, binWidth, ipt_bin_width))
-	print("Tasklist size = %s"%(len(arguments)))
-	print("Task List = {0}".format(arguments))
+		arguments.append((dataset, traffic_capture, quantized_pcap_dataset_dir, binWidth, ipt_bin_width))
+	print("Tasklist size = {0}".format(len(arguments)))
+	# print("Task List = {0}".format(arguments))
 	# spawn a pool of processes
-	print(f"Starting quantization on {MP.cpu_count()} cores")
+	print("Starting quantization on {0} cores".format(MP.cpu_count()))
 	# https://zetcode.com/python/multiprocessing/
 	with MP.Pool() as pool:
 		pool.starmap(runQuantization, arguments)

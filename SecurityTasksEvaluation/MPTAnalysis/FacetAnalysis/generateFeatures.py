@@ -208,7 +208,7 @@ def CompressFeatures(BIN_WIDTH, TOPK):
     
 
     if not os.path.exists('FeatureSets'):
-                os.makedirs('FeatureSets')
+        os.makedirs('FeatureSets')
     
     for topk in TOPK:
         for binWidth in BIN_WIDTH:

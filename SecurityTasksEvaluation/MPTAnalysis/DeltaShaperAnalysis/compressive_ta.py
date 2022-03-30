@@ -24,20 +24,20 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
                 M = N/compressive_ratio
 
                 if(M < 1):
-                    print "Cannot compress further(features = %d, ratio = %d), only 1 feature left"%(N, compressive_ratio)
+                    print("Cannot compress further(features = %d, ratio = %d), only 1 feature left"%(N, compressive_ratio))
                     continue
 
                 np.random.seed(1)
 
-                print "Compressive Ratio: %d"%(compressive_ratio)
-                print "M: %d"%(M)
-                print "N: %d"%(N)
+                print("Compressive Ratio: %d"%(compressive_ratio))
+                print("M: %d"%(M))
+                print("N: %d"%(N))
 
                 ######################################
                 # GAUSSIAN SENSING MATRIX
                 ######################################
                 if MODE == "compressive_gaussian":
-                    print "Start Compressive Gaussian Representation"
+                    print("Start Compressive Gaussian Representation")
                     for sigma_param in SIGMA_PARAM:
                         
                         """
@@ -51,7 +51,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
                         """
 
                         #Regular Traffic
-                        print "Compressive Gaussian: Phase 1, Regular - " + feature_set + "/CompressiveGaussian_regularTraffic_phase1_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv"
+                        print("Compressive Gaussian: Phase 1, Regular - " + feature_set + "/CompressiveGaussian_regularTraffic_phase1_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv")
                         output = open(data_folder + "CompressiveGaussian_regularTraffic_phase1_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv", "w") 
                         f = open(data_folder + "RegularTraffic_phase1_dataset.csv", 'r')
                         reader = csv.reader(f, delimiter=',')
@@ -74,7 +74,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
 
 
                         #DeltaShaper Traffic
-                        print "Compressive Gaussian: Phase 1, DeltaShaper - " + feature_set + "/CompressiveGaussian_deltashaperTraffic_phase1_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv"
+                        print("Compressive Gaussian: Phase 1, DeltaShaper - " + feature_set + "/CompressiveGaussian_deltashaperTraffic_phase1_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv")
                         output = open(data_folder + "CompressiveGaussian_deltashaperTraffic_phase1_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv", "w") 
                         f = open(data_folder + "DeltaShaperTraffic_320_phase1_dataset.csv", 'r')
                         reader = csv.reader(f, delimiter=',')
@@ -105,7 +105,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
                         """
 
                         #Regular Traffic
-                        print "Compressive Gaussian: Phase 2, Regular - " + feature_set + "/CompressiveGaussian_regularTraffic_phase2_" + str(sigma_param) + "_"  + str(compressive_ratio) + "_dataset.csv"
+                        print("Compressive Gaussian: Phase 2, Regular - " + feature_set + "/CompressiveGaussian_regularTraffic_phase2_" + str(sigma_param) + "_"  + str(compressive_ratio) + "_dataset.csv")
                         output = open(data_folder + "CompressiveGaussian_regularTraffic_phase2_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv", "w") 
                         f = open(data_folder + "RegularTraffic_phase2_dataset.csv", 'r')
                         reader = csv.reader(f, delimiter=',')
@@ -128,7 +128,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
 
 
                         #DeltaShaper Traffic
-                        print "Compressive Gaussian Phase 2, DeltaShaper - " + feature_set + "/CompressiveGaussian_deltashaperTraffic_phase2_" + str(sigma_param) + "_" + "_" + str(compressive_ratio) + "_dataset.csv"
+                        print("Compressive Gaussian Phase 2, DeltaShaper - " + feature_set + "/CompressiveGaussian_deltashaperTraffic_phase2_" + str(sigma_param) + "_" + "_" + str(compressive_ratio) + "_dataset.csv")
                         output = open(data_folder + "CompressiveGaussian_deltashaperTraffic_phase2_" + str(sigma_param) + "_" + str(compressive_ratio) + "_dataset.csv", "w") 
                         f = open(data_folder + "DeltaShaperTraffic_320_phase2_dataset.csv", 'r')
                         reader = csv.reader(f, delimiter=',')
@@ -153,7 +153,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
                 # BERNOULLI SENSING MATRIX
                 ######################################
                 elif MODE == "compressive_bernoulli":
-                    print "Start Compressive Bernoulli Representation"
+                    print("Start Compressive Bernoulli Representation")
 
                     """
                     Generate sensing matrix
@@ -167,7 +167,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
                     """
 
                     #Regular Traffic
-                    print "Compressive Bernoulli: Phase 1, Regular - " + feature_set + "/CompressiveBernoulli_regularTraffic_phase1_" + str(compressive_ratio) + "_dataset.csv"
+                    print("Compressive Bernoulli: Phase 1, Regular - " + feature_set + "/CompressiveBernoulli_regularTraffic_phase1_" + str(compressive_ratio) + "_dataset.csv")
                     output = open(data_folder + "CompressiveBernoulli_regularTraffic_phase1_" + str(compressive_ratio) + "_dataset.csv", "w") 
                     f = open(data_folder + "RegularTraffic_phase1_dataset.csv", 'r')
                     reader = csv.reader(f, delimiter=',')
@@ -190,7 +190,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
 
 
                     #DeltaShaper Traffic
-                    print "Compressive Bernoulli: Phase 1, DeltaShaper - " + feature_set + "/CompressiveBernoulli_deltashaperTraffic_phase1_" + str(compressive_ratio) + "_dataset.csv"
+                    print("Compressive Bernoulli: Phase 1, DeltaShaper - " + feature_set + "/CompressiveBernoulli_deltashaperTraffic_phase1_" + str(compressive_ratio) + "_dataset.csv")
                     output = open(data_folder + "CompressiveBernoulli_deltashaperTraffic_phase1_" + str(compressive_ratio) + "_dataset.csv", "w") 
                     f = open(data_folder + "DeltaShaperTraffic_320_phase1_dataset.csv", 'r')
                     reader = csv.reader(f, delimiter=',')
@@ -221,7 +221,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
                     """
 
                     #Regular Traffic
-                    print "Compressive Bernoulli: Phase 2, Regular - " + feature_set + "/CompressiveBernoulli_regularTraffic_phase2_" + str(compressive_ratio) + "_dataset.csv"
+                    print("Compressive Bernoulli: Phase 2, Regular - " + feature_set + "/CompressiveBernoulli_regularTraffic_phase2_" + str(compressive_ratio) + "_dataset.csv")
                     output = open(data_folder + "CompressiveBernoulli_regularTraffic_phase2_" + str(compressive_ratio) + "_dataset.csv", "w") 
                     f = open(data_folder + "RegularTraffic_phase2_dataset.csv", 'r')
                     reader = csv.reader(f, delimiter=',')
@@ -244,7 +244,7 @@ def CreateCompressiveRepresentation(MODE, BIN_WIDTH, TOPK, SIGMA_PARAM, COMPRESS
 
 
                     #DeltaShaper Traffic
-                    print "Compressive Bernoulli Phase 2, DeltaShaper - " + feature_set + "/CompressiveBernoulli_deltashaperTraffic_phase2_" + str(compressive_ratio) + "_dataset.csv"
+                    print("Compressive Bernoulli Phase 2, DeltaShaper - " + feature_set + "/CompressiveBernoulli_deltashaperTraffic_phase2_" + str(compressive_ratio) + "_dataset.csv")
                     output = open(data_folder + "CompressiveBernoulli_deltashaperTraffic_phase2_" + str(compressive_ratio) + "_dataset.csv", "w") 
                     f = open(data_folder + "DeltaShaperTraffic_320_phase2_dataset.csv", 'r')
                     reader = csv.reader(f, delimiter=',')

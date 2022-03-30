@@ -23,11 +23,11 @@ def MergeDatasets(data_folder):
 
     features_files = [data_folder + "deltashaper_dataset.csv", data_folder + "RegularTraffic_dataset.csv"]
 
-    print "Merging full dataset..."
+    print("Merging full dataset...")
     header_saved = False
     with open(data_folder + '/full_dataset.csv','wb') as fout:
         for filename in features_files:
-            print "merging " + filename
+            print("merging " + filename)
             with open(filename) as fin:
                 header = next(fin)
                 if not header_saved:
@@ -35,7 +35,7 @@ def MergeDatasets(data_folder):
                     header_saved = True
                 for line in fin:
                     fout.write(line)
-    print "Dataset merged!"
+    print("Dataset merged!")
 
 
 def CombinedMerging(data_folder):
@@ -44,11 +44,11 @@ def CombinedMerging(data_folder):
 
     features_files = [data_folder + "DeltaShaperTraffic_320_dataset.csv", data_folder + "RegularTraffic_dataset.csv"]
 
-    print "Merging dataset..."
+    print("Merging dataset...")
     header_saved = False
     with open(data_folder + '/regular_320_dataset.csv','wb') as fout:
         for filename in features_files:
-            print "merging " + filename
+            print("merging " + filename)
             with open(filename) as fin:
                 header = next(fin)
                 if not header_saved:
@@ -56,7 +56,7 @@ def CombinedMerging(data_folder):
                     header_saved = True
                 for line in fin:
                     fout.write(line)
-    print "Dataset merged!"
+    print("Dataset merged!")
 
 
 
@@ -100,28 +100,28 @@ def FeatureExtractionPLBenchmark(sampleFolder, binWidth, topk):
         #    print str(f[1]) + " " + str(f[2])
         
         if(topk > len(f_imp)):
-            print "Skipping, not enough features to accomodate for. TopK = " + str(topk) + " Features = " + str(len(f_imp))
+            print("Skipping, not enough features to accomodate for. TopK = " + str(topk) + " Features = " + str(len(f_imp)))
             return
         for i in range(0,topk):
             b = int(f_imp[i][2].split("_")[1])
-            print "Top-" + str(i) + " = " + str(b)
+            print("Top-" + str(i) + " = " + str(b))
             BUCKETS_TO_MEASURE.append(b)
 
     #Measure all buckets
     elif(topk == 1500):
-        print "Measuring all buckets according to quantization"
+        print("Measuring all buckets according to quantization")
         for i in range(-1500,1500,binWidth):
             BUCKETS_TO_MEASURE.append(i/binWidth)
 
 
     quantized_buckets_to_measure = sorted(BUCKETS_TO_MEASURE)
-    print "Quantized buckets to measure = " + str(quantized_buckets_to_measure)
-    print "Number of buckets to measure = " + str(len(quantized_buckets_to_measure))
+    print("Quantized buckets to measure = " + str(quantized_buckets_to_measure))
+    print("Number of buckets to measure = " + str(len(quantized_buckets_to_measure)))
 
 
     traceInterval = 60 #Amount of time in packet trace to consider for feature extraction
     feature_set_folder = 'FeatureSets/PL_' + str(traceInterval) + "_" + str(binWidth) + "_" + str(topk)
-    print feature_set_folder
+    print(feature_set_folder)
 
     if not os.path.exists(feature_set_folder):
                 os.makedirs(feature_set_folder)
@@ -171,7 +171,7 @@ def FeatureExtractionPLBenchmark(sampleFolder, binWidth, topk):
                     pass
         f.close()
 
-        od_dict = collections.OrderedDict(sorted(bin_dict.items(), key=lambda t: float(t[0])))
+        od_dict = collections.OrderedDict(sorted(list(bin_dict.items()), key=lambda t: float(t[0])))
         bin_list = []
         for i in od_dict:
             bin_list.append(od_dict[i])
@@ -196,7 +196,7 @@ def FeatureExtractionPLBenchmark(sampleFolder, binWidth, topk):
         if(not written_header):
             arff.write(', '.join(f_names))
             arff.write('\n')
-            print "Writing header"
+            print("Writing header")
             written_header = True
 
         l = []
@@ -218,39 +218,39 @@ def CompressFeatures(BIN_WIDTH, TOPK):
     
 
     if not os.path.exists('FeatureSets'):
-                os.makedirs('FeatureSets')
+        os.makedirs('FeatureSets')
     
     for topk in TOPK:
         for binWidth in BIN_WIDTH:
-            print "\n#####################################"
-            print "Generating Dataset based on Binned Packet Length Features"
+            print("\n#####################################")
+            print("Generating Dataset based on Binned Packet Length Features")
             start = time.time()
             for sampleFolder in sampleFolders:
-                print "\n#############################"
-                print "Parsing " + sampleFolder
-                print "#############################"
+                print("\n#############################")
+                print("Parsing " + sampleFolder)
+                print("#############################")
                 feature_set_folder = FeatureExtractionPLBenchmark(sampleFolder, binWidth, topk)
             if(feature_set_folder is not None):
                 GenerateDatasets(feature_set_folder + '/')
             end = time.time()
-            print "Optimize_compress_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start)
+            print("Optimize_compress_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start))
 
 
 
 
 def SplitDataset(DATASET_SPLIT, N_FLOWS, COVERT_FLOWS_PERC):
-    print "Splitting datasets with DATASET_SPLIT= %s, N_FLOWS = %s, REG_FLOWS_PROP = %s"%(DATASET_SPLIT, N_FLOWS, COVERT_FLOWS_PERC)
+    print("Splitting datasets with DATASET_SPLIT= %s, N_FLOWS = %s, REG_FLOWS_PROP = %s"%(DATASET_SPLIT, N_FLOWS, COVERT_FLOWS_PERC))
     split_value = DATASET_SPLIT * N_FLOWS #samples
     covert_split_value = COVERT_FLOWS_PERC * split_value
 
-    print "SPLIT_VALUE = %s"%(split_value)
-    print "COVERT_SAMPLES_VALUE = %s"%(covert_split_value)
+    print("SPLIT_VALUE = %s"%(split_value))
+    print("COVERT_SAMPLES_VALUE = %s"%(covert_split_value))
 
 
     for feature_folder in os.listdir("FeatureSets"):
         start = time.time()
         if(".DS_Store" not in feature_folder):
-            print "Splitting %s"%("FeatureSets/" + feature_folder + "/RegularTraffic_dataset.csv")
+            print("Splitting %s"%("FeatureSets/" + feature_folder + "/RegularTraffic_dataset.csv"))
             #Split RegularFlows
             RegularFile = open("FeatureSets/" + feature_folder + "/RegularTraffic_dataset.csv", 'rb')
             csv_reader = csv.reader(RegularFile, delimiter=',')
@@ -276,7 +276,7 @@ def SplitDataset(DATASET_SPLIT, N_FLOWS, COVERT_FLOWS_PERC):
 
 
             #Split CovertFlows
-            print "Splitting %s"%("FeatureSets/" + feature_folder + "/DeltaShaperTraffic_320_dataset.csv")
+            print("Splitting %s"%("FeatureSets/" + feature_folder + "/DeltaShaperTraffic_320_dataset.csv"))
             CovertFile = open("FeatureSets/" + feature_folder + "/DeltaShaperTraffic_320_dataset.csv", "rb")
             csv_reader = csv.reader(CovertFile, delimiter=',')
 
@@ -301,15 +301,15 @@ def SplitDataset(DATASET_SPLIT, N_FLOWS, COVERT_FLOWS_PERC):
             end = time.time()
             binWidth = feature_folder.split("_")[2]
             topk = feature_folder.split("_")[3]
-            print "Optimize_split_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start)
+            print("Optimize_split_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start))
 
 
 
 def MergeTestData():
     for feature_folder in os.listdir("FeatureSets"):
         if(".DS_Store" not in feature_folder):
-            print "Merging %s"%("FeatureSets/" + feature_folder + "/RegularTraffic_phase2_dataset.csv")
-            print "Merging %s"%("FeatureSets/" + feature_folder + "/DeltaShaperTraffic_320_phase2_dataset.csv")
+            print("Merging %s"%("FeatureSets/" + feature_folder + "/RegularTraffic_phase2_dataset.csv"))
+            print("Merging %s"%("FeatureSets/" + feature_folder + "/DeltaShaperTraffic_320_phase2_dataset.csv"))
 
             #Merging Phase2
             PhaseTwoFile = open("FeatureSets/" + feature_folder + "/Phase2_dataset.csv", 'w')
@@ -351,33 +351,33 @@ def FeatureExtractionPLBenchmarkBasedOnTrainData(sampleFolder, binWidth, topk):
         #    print str(f[1]) + " " + str(f[2])
         
         if(topk > len(f_imp)):
-            print "Skipping, not enough features to accomodate for. TopK = " + str(topk) + " Features = " + str(len(f_imp))
+            print("Skipping, not enough features to accomodate for. TopK = " + str(topk) + " Features = " + str(len(f_imp)))
             return
         for i in range(0,topk):
             b = int(f_imp[i][2].split("_")[1])
-            print "Top-" + str(i) + " = " + str(b)
+            print("Top-" + str(i) + " = " + str(b))
             BUCKETS_TO_MEASURE.append(b)
 
     #Measure all buckets
     elif(topk == 1500):
-        print "Measuring all buckets according to quantization"
+        print("Measuring all buckets according to quantization")
         for i in range(-1500,1500,binWidth):
             BUCKETS_TO_MEASURE.append(i/binWidth)
 
 
     quantized_buckets_to_measure = sorted(BUCKETS_TO_MEASURE)
-    print "Quantized buckets to measure = " + str(quantized_buckets_to_measure)
-    print "Number of buckets to measure = " + str(len(quantized_buckets_to_measure))
+    print("Quantized buckets to measure = " + str(quantized_buckets_to_measure))
+    print("Number of buckets to measure = " + str(len(quantized_buckets_to_measure)))
 
 
     traceInterval = 60 #Amount of time in packet trace to consider for feature extraction
     feature_set_folder = 'FeatureSets/PL_' + str(traceInterval) + "_" + str(binWidth) + "_" + str(topk)
-    print feature_set_folder
+    print(feature_set_folder)
 
     if not os.path.exists(feature_set_folder):
-                os.makedirs(feature_set_folder)
+        os.makedirs(feature_set_folder)
     arff_path = feature_set_folder + '/' + os.path.basename(sampleFolder) + '_dataset.csv'
-    arff = open(arff_path, 'wb')
+    arff = open(arff_path, 'w')
     written_header = False
 
 
@@ -422,7 +422,7 @@ def FeatureExtractionPLBenchmarkBasedOnTrainData(sampleFolder, binWidth, topk):
                     pass
         f.close()
 
-        od_dict = collections.OrderedDict(sorted(bin_dict.items(), key=lambda t: float(t[0])))
+        od_dict = collections.OrderedDict(sorted(list(bin_dict.items()), key=lambda t: float(t[0])))
         bin_list = []
         for i in od_dict:
             bin_list.append(od_dict[i])
@@ -447,7 +447,7 @@ def FeatureExtractionPLBenchmarkBasedOnTrainData(sampleFolder, binWidth, topk):
         if(not written_header):
             arff.write(', '.join(f_names))
             arff.write('\n')
-            print "Writing header"
+            print("Writing header")
             written_header = True
 
         l = []
@@ -468,29 +468,29 @@ def CompressFeaturesBasedOnTrainData(BIN_WIDTH, TOPK):
 
 
     if not os.path.exists('FeatureSets'):
-                os.makedirs('FeatureSets')
+        os.makedirs('FeatureSets')
     
     for topk in TOPK:
         for binWidth in BIN_WIDTH:
             start = time.time()
-            print "\n#####################################"
-            print "Generating Dataset based on Binned Packet Length Features"
+            print("\n#####################################")
+            print("Generating Dataset based on Binned Packet Length Features")
             for sampleFolder in sampleFolders:
-                print "\n#############################"
-                print "Parsing " + sampleFolder
-                print "#############################"
+                print("\n#############################")
+                print("Parsing " + sampleFolder)
+                print("#############################")
                 feature_set_folder = FeatureExtractionPLBenchmarkBasedOnTrainData(sampleFolder, binWidth, topk)
             if(feature_set_folder is not None):
                 GenerateDatasets(feature_set_folder + '/')
             end = time.time()
-            print "Optimize_compress_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start)
+            print("Optimize_compress_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start))
 
 
 def ExtractFirstNPackets(sampleFolder, number_of_packets):
 
     traceInterval = 60 #Amount of time in packet trace to consider for feature extraction
     feature_set_folder = 'FeatureSets/First_%d_packets'%(number_of_packets)
-    print feature_set_folder
+    print(feature_set_folder)
 
     if not os.path.exists(feature_set_folder):
                 os.makedirs(feature_set_folder)
@@ -560,7 +560,7 @@ def ExtractFirstNPackets(sampleFolder, number_of_packets):
             if(not written_header):
                 arff.write(', '.join(f_names))
                 arff.write('\n')
-                print "Writing header"
+                print("Writing header")
                 written_header = True
 
             l = []
@@ -569,7 +569,7 @@ def ExtractFirstNPackets(sampleFolder, number_of_packets):
             arff.write(', '.join(l))
             arff.write('\n')
         else:
-            print "Sample %s has not enough packets"%(sampleFolder + "/" + sample + "/" + sample + ".pcap")
+            print("Sample %s has not enough packets"%(sampleFolder + "/" + sample + "/" + sample + ".pcap"))
     arff.close()
     return feature_set_folder
 
@@ -586,13 +586,13 @@ def ExtractPacketSample(NUMBER_OF_PACKETS):
                 os.makedirs('FeatureSets')
     
     for number_of_packets in NUMBER_OF_PACKETS:
-        print "\n#####################################"
-        print "Extracting first %d packet sizes"%(number_of_packets)
+        print("\n#####################################")
+        print("Extracting first %d packet sizes"%(number_of_packets))
 
         for sampleFolder in sampleFolders:
-            print "\n#############################"
-            print "Parsing " + sampleFolder
-            print "#############################"
+            print("\n#############################")
+            print("Parsing " + sampleFolder)
+            print("#############################")
             feature_set_folder = ExtractFirstNPackets(sampleFolder, number_of_packets)
         if(feature_set_folder is not None):
             GenerateDatasets(feature_set_folder + '/')

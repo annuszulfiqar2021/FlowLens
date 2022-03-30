@@ -6,7 +6,7 @@ from .Packet import *
 #merges collection of packets(objects) into collection of flows(many-to-one)
 #Working: group packets with same ip-pair(direction irrelevant) and merge all packets for
 #which |packet1.time - packet2.time| < threshold(timegap)
-def packetsToFlows(packets,timegap):
+def packetsToFlows(packets, timegap, bin_width, ipt_bin_width):
 	#sanity check for 0 packets 
 	if len(packets) == 0:
 		return None
@@ -19,12 +19,12 @@ def packetsToFlows(packets,timegap):
 	packets.sort(key = lambda packet:packet.timestamp)
 	packets.sort(key = lambda packet:packet.key)
 	
-	nextflow = Flow(None)
+	nextflow = Flow(None, bin_width, ipt_bin_width)
 	for nextpacket in packets:
 		#if ip-pairs dont match or time-difference of prev and current packet greater
 		#than timegap, create a new flow 
 		if (nextflow.key != nextpacket.key) or ((nextpacket.timestamp - nextflow.getEnd()) > timegap):
-			nextflow = Flow(nextpacket)
+			nextflow = Flow(nextpacket, bin_width, ipt_bin_width)
 			outputflows.append(nextflow)
 		#if not then add packet to previous flow
 		else:
@@ -33,7 +33,7 @@ def packetsToFlows(packets,timegap):
 	return outputflows
 
 #same as function packetsToFlow but merges flows instead of packets
-def combineFlows(flows, flowgap):
+def combineFlows(flows, flowgap, bin_width, ipt_bin_width):
 	if len(flows) == 0:
 		return None
 
@@ -42,7 +42,7 @@ def combineFlows(flows, flowgap):
 	flows.sort(key = lambda flow:flow.getStart())
 	flows.sort(key = lambda flow:flow.key)
 	
-	nextoutflow = Flow(None)
+	nextoutflow = Flow(None, bin_width, ipt_bin_width)
 	for nextflow in flows:
 		if (nextoutflow.key != nextflow.key) or ((nextflow.getStart() - nextoutflow.getEnd()) > flowgap):
 			nextoutflow = nextflow
@@ -72,6 +72,8 @@ def writeFlowsToFile(flowlist, filename):
 	
 	to_write = []
 	for flow in flowlist:
+		pl_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in flow.pl_flow_marker.items()])
+		ipt_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in flow.ipt_flow_marker.items()])
 		to_write.append(
 			socket.inet_ntoa(flow.ip1) + ',' +
 			socket.inet_ntoa(flow.ip2) + ',' +
@@ -84,7 +86,10 @@ def writeFlowsToFile(flowlist, filename):
 			str(flow.n_byte2) + ',' +
 			'%.6f'%flow.t_start2 + ',' +
 			'%.6f'%flow.t_end2 + ',' +
-			'%.6f'%flow.getInterArrivaltime2())
+			'%.6f'%flow.getInterArrivaltime2() + ',' +
+			pl_flow_marker_str + ',' +
+			ipt_flow_marker_str
+			)
 	
 	outfile.write("\n".join(to_write))
 	outfile.close()
@@ -92,7 +97,20 @@ def writeFlowsToFile(flowlist, filename):
 #class which defines the structure of flows
 class Flow:
 	#constructor of default flow
-	def __init__(self,firstpacket):
+	def __init__(self, firstpacket, bin_width, ipt_bin_width):
+		
+		# some parameters to limit flow characteristics
+		self.MAX_MTU = 1500
+		self.MAX_IPT = 3600
+		
+		# initialize the parameters for this flow's flow marker
+		self.bin_width = bin_width
+		self.ipt_bin_width = ipt_bin_width
+		self.quantized_pl_bin_upper_limit = self.MAX_MTU // self.bin_width
+		self.quantized_ipt_bin_upper_limit = self.MAX_IPT // self.ipt_bin_width
+		self.pl_flow_marker = {key: 0 for key in range(1, self.quantized_pl_bin_upper_limit + 1)}
+		self.ipt_flow_marker = {key: 0 for key in range(1, self.quantized_ipt_bin_upper_limit + 1)}
+
 		if firstpacket == None:
 			self.ip1 = None
 			self.ip2 = None
@@ -108,6 +126,7 @@ class Flow:
 			self.t_end2 = 0
 			self.t_interarrival2 = []
 		else:
+			# first packet in a flow must update the flow marker
 			if firstpacket.source < firstpacket.dest:
 				self.ip1 = firstpacket.source
 				self.ip2 = firstpacket.dest
@@ -129,15 +148,41 @@ class Flow:
 				self.t_start1 = 0
 				self.t_end1 = 0
 				self.t_interarrival1 = []
-				self.n_packet2 = 1			
+				self.n_packet2 = 1
 				self.n_byte2 = firstpacket.size				
 				self.t_start2 = firstpacket.timestamp
 				self.t_end2 = firstpacket.timestamp
 				self.t_interarrival2 = []			
+
 			self.key = firstpacket.key
-	
+
+			# UPDATE the flow markers using size and ipt of this packet
+			self.update_flow_markers(firstpacket.size, firstpacket.timestamp)
+
+	def update_flow_markers(self, pkt_size, pkt_timestamp):
+		# the correct quantization bins for PL and IPT
+		# quantization was done one level above this function call, so we don't do that here again!
+		quantized_pl = int(pkt_size) 							# // self.bin_width
+		quantized_ipt = int(pkt_timestamp - self.getEnd()) 		# // self.ipt_bin_width
+
+		# UPDATE the PL flow marker while handling edge cases (less and greater than limits)
+		if quantized_pl < 1:
+			self.pl_flow_marker[1] += 1
+		elif quantized_pl > self.quantized_pl_bin_upper_limit:
+			self.pl_flow_marker[self.quantized_pl_bin_upper_limit] += 1
+		else:
+			self.pl_flow_marker[quantized_pl] += 1
+
+		# UPDATE the IPT flow marker while handling edge cases (less and greater than limits)
+		if quantized_ipt < 1:
+			self.ipt_flow_marker[1] += 1
+		elif quantized_ipt > self.quantized_ipt_bin_upper_limit:
+			self.ipt_flow_marker[self.quantized_ipt_bin_upper_limit] += 1
+		else:
+			self.ipt_flow_marker[quantized_ipt] += 1
+
 	#add a flow to the current flow (by changing volume and duration)
-	def addFlow(self,flow):
+	def addFlow(self, flow):
 		self.t_interarrival1 += flow.t_interarrival1
 		self.t_interarrival2 += flow.t_interarrival2
 		self.n_packet1 += flow.n_packet1
@@ -161,11 +206,23 @@ class Flow:
 			self.t_end1 = flow.t_end1
 		if(self.t_end2 < flow.t_end2):
 			self.t_end2 = flow.t_end2
+		
+		# ADD their PL flow markers
+		for this_bin, this_bin_value in self.pl_flow_marker.items():
+			self.pl_flow_marker[this_bin] = this_bin_value + flow.pl_flow_marker[this_bin]
+		
+		# ADD their IPT flow markers
+		for this_bin, this_bin_value in self.ipt_flow_marker.items():
+			self.ipt_flow_marker[this_bin] = this_bin_value + flow.ipt_flow_marker[this_bin]
 	
 	#add a packet to the current flow (by changing volume and duration)
-	def addPacket(self,packet):
+	def addPacket(self, packet):
+		
 		if packet.source == self.ip1 and packet.dest == self.ip2:			
 			
+			# UPDATE the flow markers before updating flow end time
+			self.update_flow_markers(packet.timestamp, packet.size)
+
 			#initialize flow if not initialized
 			if self.n_packet1 == 0:
 				self.t_start1 = packet.timestamp
@@ -185,6 +242,9 @@ class Flow:
 		
 		elif packet.source == self.ip2 and packet.dest == self.ip1:
 			
+			# UPDATE the flow markers before updating flow end time
+			self.update_flow_markers(packet.timestamp, packet.size)
+
 			#initialize flow if not initialized
 			if self.n_packet2 == 0:
 				self.t_start2 = packet.timestamp

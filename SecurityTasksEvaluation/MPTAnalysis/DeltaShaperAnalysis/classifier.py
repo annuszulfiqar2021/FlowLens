@@ -44,9 +44,9 @@ def gatherHoldoutData(data_folder, cfg, load_model, sketch_size=0, sigma_param=0
 	reader = csv.reader(f, delimiter=',')
 	fac = list(reader)
 	
-	print "###########################################"
-	print "Configuration " + cfg[1]
-	print "###########################################"
+	print("###########################################")
+	print("Configuration " + cfg[1])
+	print("###########################################")
 
 	#Convert data to floats (and labels to integers)
 	features_id = reg[0]
@@ -126,8 +126,8 @@ def gatherHoldoutData(data_folder, cfg, load_model, sketch_size=0, sigma_param=0
 	test_x = reg_test_x + fac_test_x
 	test_y = reg_test_y + fac_test_y
 
-	print "Regular samples (Train = %s, Test = %s) "%(len(reg_train_x), len(reg_test_x))
-	print "Covert samples (Train = %s, Test = %s) "%(len(fac_train_x), len(fac_test_x))
+	print("Regular samples (Train = %s, Test = %s) "%(len(reg_train_x), len(reg_test_x)))
+	print("Covert samples (Train = %s, Test = %s) "%(len(fac_train_x), len(fac_test_x)))
 	return train_x, train_y, test_x, test_y, features_id
 
 
@@ -138,7 +138,7 @@ def runClassification_Holdout_acc(data_folder, feature_set, cfg,classifier, stor
 
 	model = classifier[0]
 	clf_name = classifier[1]
-	print clf_name
+	print(clf_name)
 	
 	#Decide whether to load a previously generated model or to generate a new one
 	if("Online" in cfg[0]):
@@ -156,7 +156,7 @@ def runClassification_Holdout_acc(data_folder, feature_set, cfg,classifier, stor
 
 	if(load_model):
 		#Load previously trained model from file
-		print "Loading " + model_data
+		print("Loading " + model_data)
 		model = load(model_data)
 	else:
 		#Train model
@@ -165,20 +165,20 @@ def runClassification_Holdout_acc(data_folder, feature_set, cfg,classifier, stor
 		end_train = time.time()
 		if("Compressive" not in cfg[0]):
 			if("1500" in truncation):
-				print "Train\t%s\t%s"%(binWidth, end_train-start_train)
+				print("Train\t%s\t%s"%(binWidth, end_train-start_train))
 		#Save model
-		print "Saving " + model_data
+		print("Saving " + model_data)
 		dump(model, model_data)
 
 	
 	#Perform predictions
-	print "Predicting %s samples"%(len(test_x))
+	print("Predicting %s samples"%(len(test_x)))
 	start_batch = time.time()
 	predictions = model.predict(np.asarray(test_x))
 	end_batch = time.time()
 	if("Compressive" not in cfg[0]):
 		if("1500" in truncation):
-			print "Batch\t%s\t%s"%(binWidth, end_batch-start_batch)
+			print("Batch\t%s\t%s"%(binWidth, end_batch-start_batch))
 
 	#Generate metrics
 	TN, FP, FN, TP = confusion_matrix(np.asarray(test_y), predictions).ravel()
@@ -192,10 +192,10 @@ def runClassification_Holdout_acc(data_folder, feature_set, cfg,classifier, stor
 	bin_number = list(range(len(train_x[0])))
 
 	#print importances
-	f_imp = zip(bin_number,f_imp,features_id)
+	f_imp = list(zip(bin_number,f_imp,features_id))
 	f_imp.sort(key = lambda t: t[1], reverse=True)
 	
-	print "Features considered: " + str(len(f_imp))
+	print("Features considered: " + str(len(f_imp)))
 	np.save(store_folder + '/' + feature_set + "/FeatureImportance_" + clf_name + "_" + cfg[1], np.array(f_imp))
 
 	file = open('classificationResults/' + feature_set + "/FeatureImportance_" + clf_name + "_" + cfg[1] + ".txt","w") 
@@ -204,11 +204,11 @@ def runClassification_Holdout_acc(data_folder, feature_set, cfg,classifier, stor
 	file.close() 
 
 	
-	print "Model Acc: " + "{0:.3f}".format(ACC)
-	print "Model FPR: " + "{0:.3f}".format(FPR)
-	print "Model FNR: " + "{0:.3f}".format(FNR)
-	print "Model AUC: " + "{0:.3f}".format(AUC)
-	print ""
+	print("Model Acc: " + "{0:.3f}".format(ACC))
+	print("Model FPR: " + "{0:.3f}".format(FPR))
+	print("Model FNR: " + "{0:.3f}".format(FNR))
+	print("Model AUC: " + "{0:.3f}".format(AUC))
+	print("")
 	
 	return ACC, FPR, FNR, AUC
 
@@ -227,9 +227,9 @@ def gatherAllData(data_folder, cfg, dataset_fraction):
 	fac = list(reader)
 	fac = fac[:int(dataset_fraction*len(fac))]
 
-	print "###########################################"
-	print "Configuration " + cfg[1]
-	print "###########################################"
+	print("###########################################")
+	print("Configuration " + cfg[1])
+	print("###########################################")
 
 	#Convert data to floats (and labels to integers)
 	features_id = reg[0]
@@ -277,7 +277,7 @@ def gatherAllData(data_folder, cfg, dataset_fraction):
 	#Shuffle positive/negative samples for CV purposes
 	x_shuf = []
 	y_shuf = []
-	index_shuf = range(len(train_x))
+	index_shuf = list(range(len(train_x)))
 	shuffle(index_shuf)
 	for i in index_shuf:
 		x_shuf.append(train_x[i])
@@ -296,7 +296,7 @@ def runClassification_CV_acc(data_folder, feature_set, cfg,classifier, store_fol
 
 	#Report Cross-Validation Accuracy
 	#scores = cross_val_score(model, np.asarray(train_x), np.asarray(train_y), cv=10)
-	print clf_name
+	print(clf_name)
 	#print "Avg. Accuracy: " + str(sum(scores)/float(len(scores)))
 
 	cv = StratifiedKFold(n_splits=10)
@@ -336,9 +336,9 @@ def runClassification_CV_acc(data_folder, feature_set, cfg,classifier, store_fol
 		mean_imp = (importances[0][n] + importances[1][n] + importances[2][n] + importances[3][n] + importances[4][n] + importances[5][n] + importances[6][n] + importances[7][n] + importances[8][n] + importances[9][n])/10.0
 		mean_importances.append(mean_imp)
 	#print mean_importances
-	f_imp = zip(bin_number,mean_importances,features_id)
+	f_imp = list(zip(bin_number,mean_importances,features_id))
 	f_imp.sort(key = lambda t: t[1], reverse=True)
-	print "Features considered: " + str(len(f_imp))
+	print("Features considered: " + str(len(f_imp)))
 	np.save(store_folder + '/' + feature_set + "/FeatureImportance_" + clf_name + "_" + cfg[1], np.array(f_imp))
 
 	file = open('classificationResults/' + feature_set + "/FeatureImportance_" + clf_name + "_" + cfg[1] + ".txt","w") 
@@ -354,10 +354,10 @@ def runClassification_CV_acc(data_folder, feature_set, cfg,classifier, store_fol
 	mean_fpr = np.mean(fprs)
 	mean_fnr = np.mean(fnrs)
 	
-	print "Model Acc: " + "{0:.3f}".format(mean_acc)
-	print "Model FPR: " + "{0:.3f}".format(mean_fpr)
-	print "Model FNR: " + "{0:.3f}".format(mean_fnr)
-	print ""
+	print("Model Acc: " + "{0:.3f}".format(mean_acc))
+	print("Model FPR: " + "{0:.3f}".format(mean_fpr))
+	print("Model FNR: " + "{0:.3f}".format(mean_fnr))
+	print("")
 	
 	return mean_acc, mean_fpr, mean_fnr
 
@@ -378,18 +378,18 @@ def GenerateFeatureImportanceBasedOnTrainData(mode, binWidths, topk_features, de
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - Quantization"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - Quantization")
+		print("=================================================")
 		for binWidth in binWidths:
 			for topk in topk_features:
 				start = time.time()
 				feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-				print feature_set
+				print(feature_set)
 
 				#If invalid, skip and add placeholder for figure purposes
 				if(topk != 1500 and topk > 1500/binWidth):
-					print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+					print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 					continue
 
 				data_folder = 'FeatureSets/' + feature_set + '/'
@@ -398,7 +398,7 @@ def GenerateFeatureImportanceBasedOnTrainData(mode, binWidths, topk_features, de
 							
 				for cfg in cfgs:
 					for classifier in classifiers:
-						print "Running classifiers for " + cfg[0] + " and " + cfg[1]
+						print("Running classifiers for " + cfg[0] + " and " + cfg[1])
 						acc, fpr, fnr, auc = runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model)
 						to_save = []
 						to_save.append(acc)
@@ -408,7 +408,7 @@ def GenerateFeatureImportanceBasedOnTrainData(mode, binWidths, topk_features, de
 						np.save(store_folder + '/' + feature_set + '/' + "classificationResults_phase1_NoSketch", np.array(to_save))
 				
 				end = time.time()
-				print "Optimize_modelBuild_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start)
+				print("Optimize_modelBuild_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start))
 
 
 
@@ -428,27 +428,27 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - Quantization"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - Quantization")
+		print("=================================================")
 		for binWidth in binWidths:
 			for topk in topk_features:
 
 				feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-				print feature_set
+				print(feature_set)
 
 				#If invalid, skip and add placeholder for figure purposes
 				if(topk != 1500 and topk > 1500/binWidth):
-					print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+					print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 					continue
 
 				data_folder = 'FeatureSets/' + feature_set + '/'
 				if not os.path.exists(store_folder + '/' + feature_set):
-						os.makedirs(store_folder + '/' + feature_set)
+					os.makedirs(store_folder + '/' + feature_set)
 							
 				for cfg in cfgs:
 					for classifier in classifiers:
-						print "Running classifiers for " + cfg[0] + " and " + cfg[1]
+						print("Running classifiers for " + cfg[0] + " and " + cfg[1])
 						acc, fpr, fnr, auc = runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model)
 						to_save = []
 						to_save.append(acc)
@@ -467,19 +467,19 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - Quantization"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - Quantization")
+		print("=================================================")
 		for sketch_size in sketch_sizes:
 			for binWidth in binWidths:
 				for topk in topk_features:
 
 					feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-					print feature_set
+					print(feature_set)
 
 					#If invalid, skip and add placeholder for figure purposes
 					if(topk != 1500 and topk > 1500/binWidth):
-						print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+						print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 						continue
 
 					data_folder = 'FeatureSets/' + feature_set + '/'
@@ -488,7 +488,7 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 								
 					for cfg in cfgs:
 						for classifier in classifiers:
-							print "Running classifiers for " + cfg[0] + "_" + str(sketch_size) + " and " + cfg[1] + "_" + str(sketch_size)
+							print("Running classifiers for " + cfg[0] + "_" + str(sketch_size) + " and " + cfg[1] + "_" + str(sketch_size))
 							acc, fpr, fnr, auc = runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model, sketch_size)
 							to_save = []
 							to_save.append(acc)
@@ -506,20 +506,20 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 	
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - CompressiveGaussian"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - CompressiveGaussian")
+		print("=================================================")
 
 		for compress_ratio in compressive_ratio:
 			for binWidth in binWidths:
 				for topk in topk_features:
 					for sigma_param in sigma_params:
 						feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-						print feature_set
+						print(feature_set)
 
 						#If invalid, skip and add placeholder for figure purposes
 						if(topk != 1500 and topk > 1500/binWidth):
-							print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+							print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 							continue
 
 						data_folder = 'FeatureSets/' + feature_set + '/'
@@ -529,7 +529,7 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 						for cfg in cfgs:
 							for classifier in classifiers:
 								if(os.path.exists(data_folder + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + "_dataset.csv")):
-									print "Running classifiers for " + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(sigma_param) + "_" + str(compress_ratio)
+									print("Running classifiers for " + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(sigma_param) + "_" + str(compress_ratio))
 									acc, fpr, fnr, auc = runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model, 0, sigma_param, 0, compress_ratio)
 									to_save = []
 									to_save.append(acc)
@@ -538,8 +538,8 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 									to_save.append(auc)
 									np.save(store_folder + '/' + feature_set + '/' + "classificationResults_phase2_CompressiveGaussian_" + str(sigma_param) + "_" + str(compress_ratio), np.array(to_save))
 								else:
-									print data_folder + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + "_dataset.csv is not in place."
-									print "We couldn't fit this compression factor."
+									print(data_folder + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + "_dataset.csv is not in place.")
+									print("We couldn't fit this compression factor.")
 
 	if(mode == "compressive_bernoulli"):
 		cfgs = [
@@ -549,19 +549,19 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 	
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - CompressiveBernoulli"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - CompressiveBernoulli")
+		print("=================================================")
 		
 		for compress_ratio in compressive_ratio:
 			for binWidth in binWidths:
 				for topk in topk_features:
 					feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-					print feature_set
+					print(feature_set)
 
 					#If invalid, skip and add placeholder for figure purposes
 					if(topk != 1500 and topk > 1500/binWidth):
-						print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+						print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 						continue
 
 					data_folder = 'FeatureSets/' + feature_set + '/'
@@ -571,7 +571,7 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 					for cfg in cfgs:
 						for classifier in classifiers:
 							if(os.path.exists(data_folder + cfg[0] + "_" + str(compress_ratio) + "_dataset.csv")):
-								print "Running classifiers for " + cfg[0] + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(compress_ratio)
+								print("Running classifiers for " + cfg[0] + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(compress_ratio))
 								acc, fpr, fnr, auc = runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model, 0, 0, 0, compress_ratio)
 								to_save = []
 								to_save.append(acc)
@@ -580,8 +580,8 @@ def ClassifyTestDataBasedOnModel(mode, binWidths, topk_features, n_flows, sketch
 								to_save.append(auc)
 								np.save(store_folder + '/' + feature_set + '/' + "classificationResults_phase2_CompressiveBernoulli_" + str(compress_ratio), np.array(to_save))
 							else:
-								print data_folder + cfg[0] + "_" + str(compress_ratio) + "_dataset.csv is not in place."
-								print "We couldn't fit this compression factor."
+								print(data_folder + cfg[0] + "_" + str(compress_ratio) + "_dataset.csv is not in place.")
+								print("We couldn't fit this compression factor.")
 
 
 
@@ -602,30 +602,30 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - Quantization"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - Quantization")
+		print("=================================================")
 		for binWidth in binWidths:
 			for topk in topk_features:
 				start = time.time()
 				feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-				print feature_set
+				print(feature_set)
 
 				#If invalid, skip and add placeholder for figure purposes
 				if(topk != 1500 and topk > 1500/binWidth):
-					print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+					print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 					continue
 
 				data_folder = 'FeatureSets/' + feature_set + '/'
 				if not os.path.exists(store_folder + '/' + feature_set):
-						os.makedirs(store_folder + '/' + feature_set)
+					os.makedirs(store_folder + '/' + feature_set)
 
 				for cfg in cfgs:
 					for classifier in classifiers:
-						print "Running classifiers for " + cfg[0] + " and " + cfg[1]
+						print("Running classifiers for " + cfg[0] + " and " + cfg[1])
 						runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model)
 				end = time.time()
-				print "Optimize_modelBuild_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start)
+				print("Optimize_modelBuild_bin_%s_topk_%s_time_%s"%(binWidth, topk, end-start))
 
 
 	if("online" in mode):
@@ -636,18 +636,18 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 	
-		print "\n================================================="
-		print "XGBoost - Packet Length Features - Quantization"
-		print "================================================="
+		print("\n=================================================")
+		print("XGBoost - Packet Length Features - Quantization")
+		print("=================================================")
 		for sketch_size in sketch_sizes:
 			for binWidth in binWidths:
 				for topk in topk_features:
 					feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-					print feature_set
+					print(feature_set)
 
 					#If invalid, skip and add placeholder for figure purposes
 					if(topk != 1500 and topk > 1500/binWidth):
-						print "Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth)
+						print("Skipping sample, invalid configuration. TopK = " + str(topk) + " Total Features = " + str(1500/binWidth))
 						continue
 
 					data_folder = 'FeatureSets/' + feature_set + '/'
@@ -656,7 +656,7 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 
 					for cfg in cfgs:
 						for classifier in classifiers:
-							print "Running classifiers for " + cfg[0] + "_" + str(sketch_size) + " and " + cfg[1] + "_" + str(sketch_size)
+							print("Running classifiers for " + cfg[0] + "_" + str(sketch_size) + " and " + cfg[1] + "_" + str(sketch_size))
 							runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model, sketch_size)
 
 	
@@ -668,16 +668,16 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 	
-		print "\n===================================================="
-		print "XGBoost - Packet Length Features - CompressiveGaussian"
-		print "======================================================"
+		print("\n====================================================")
+		print("XGBoost - Packet Length Features - CompressiveGaussian")
+		print("======================================================")
 		
 		for compress_ratio in compressive_ratio:
 			for binWidth in binWidths:
 				for topk in topk_features:
 					for sigma_param in sigma_params:
 						feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-						print feature_set
+						print(feature_set)
 
 						data_folder = 'FeatureSets/' + feature_set + '/'
 						if not os.path.exists(store_folder + '/' + feature_set):
@@ -686,11 +686,11 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 						for cfg in cfgs:
 							for classifier in classifiers:
 								if(os.path.exists(data_folder + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + "_dataset.csv")):
-									print "Running classifiers for " + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(sigma_param) + "_" + str(compress_ratio)
+									print("Running classifiers for " + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(sigma_param) + "_" + str(compress_ratio))
 									runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model, 0, sigma_param, 0, compress_ratio)
 								else:
-									print data_folder + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + "_dataset.csv is not in place."
-									print "We couldn't fit this compression factor."
+									print(data_folder + cfg[0] + "_" + str(sigma_param) + "_" + str(compress_ratio) + "_dataset.csv is not in place.")
+									print("We couldn't fit this compression factor.")
 	
 
 	if(mode == "compressive_bernoulli"):
@@ -701,15 +701,15 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 		classifiers = [
 		[XGBClassifier(),"XGBoost"]]
 	
-		print "\n====================================================="
-		print "XGBoost - Packet Length Features - CompressiveBernoulli"
-		print "======================================================="
+		print("\n=====================================================")
+		print("XGBoost - Packet Length Features - CompressiveBernoulli")
+		print("=======================================================")
 		
 		for compress_ratio in compressive_ratio:
 			for binWidth in binWidths:
 				for topk in topk_features:
 					feature_set = 'PL_60_' + str(binWidth) + '_' + str(topk)
-					print feature_set
+					print(feature_set)
 
 					data_folder = 'FeatureSets/' + feature_set + '/'
 					if not os.path.exists(store_folder + '/' + feature_set):
@@ -718,8 +718,8 @@ def BuildModelBasedOnTrainData(mode, binWidths, topk_features, sketch_sizes=[], 
 					for cfg in cfgs:
 						for classifier in classifiers:
 							if(os.path.exists(data_folder + cfg[0] + "_" + str(compress_ratio) + "_dataset.csv")):
-								print "Running classifiers for " + cfg[0] + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(compress_ratio)
+								print("Running classifiers for " + cfg[0] + "_" + str(compress_ratio) + " and " + cfg[1] + "_" + str(compress_ratio))
 								runClassification_Holdout_acc(data_folder, feature_set, cfg, classifier, store_folder, load_model, 0, 0, 0, compress_ratio)
 							else:
-								print data_folder + cfg[0] + "_" + str(compress_ratio) + "_dataset.csv is not in place."
-								print "We couldn't fit this compression factor."
+								print(data_folder + cfg[0] + "_" + str(compress_ratio) + "_dataset.csv is not in place.")
+								print("We couldn't fit this compression factor.")

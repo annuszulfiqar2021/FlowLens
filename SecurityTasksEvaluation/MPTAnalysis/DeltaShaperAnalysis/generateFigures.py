@@ -23,7 +23,7 @@ def autolabel(rects, ax):
 
 
 def PlotQuantization(binWidths, n_flows):
-    print "PlotQuantization"
+    print("PlotQuantization")
     feature_sets = []
     set_acc = []
     set_fpr =[]
@@ -49,7 +49,7 @@ def PlotQuantization(binWidths, n_flows):
         if set_acc[i] > max_acc:
             max_acc = set_acc[i]
             max_fset = f_set
-    print "Max acc: %s, Best quantization set: %s"%(max_acc, max_fset)
+    print("Max acc: %s, Best quantization set: %s"%(max_acc, max_fset))
 
     fig = plt.figure(figsize=(10,4))
     ax1 = fig.add_subplot(111)
@@ -88,7 +88,7 @@ def PlotQuantization(binWidths, n_flows):
 
 
 def PlotQuantizationLines(binWidths, n_flows):
-    print "PlotQuantizationLines"
+    print("PlotQuantizationLines")
     feature_sets = []
     set_acc = []
 
@@ -112,7 +112,7 @@ def PlotQuantizationLines(binWidths, n_flows):
     curr_acc = set_acc
     
     ind = np.arange(len(curr_fset))  # the x locations for the groups
-    print curr_acc
+    print(curr_acc)
     ax1.plot(curr_acc, color=colors[0], marker=".", markersize=12, lw=3, label='AUC')
     ax1.hlines(0.95, 0, len(ind)-1, lw=3, label='Baseline, AUC = 0.95')
 
@@ -145,7 +145,7 @@ def PlotQuantizationLines(binWidths, n_flows):
 
 
 def PlotKQuantizationAndTruncation(binWidths, topk_features, n_flows):
-    print "PlotKQuantizationAndTruncation"
+    print("PlotKQuantizationAndTruncation")
     if not os.path.exists('Figures/Truncation_comparison'):
         os.makedirs('Figures/Truncation_comparison')
 
@@ -187,7 +187,7 @@ def PlotKQuantizationAndTruncation(binWidths, topk_features, n_flows):
             if set_acc[i] > max_acc:
                 max_acc = set_acc[i]
                 max_fset = f_set
-        print "K = " + str(binWidth) + ", Max acc: %s, Best Truncation: %s"%(max_acc, max_fset)
+        print("K = " + str(binWidth) + ", Max acc: %s, Best Truncation: %s"%(max_acc, max_fset))
 
 
         #Plot figures
@@ -213,7 +213,7 @@ def PlotKQuantizationAndTruncation(binWidths, topk_features, n_flows):
         ax1.yaxis.grid(color='black', linestyle='dotted')
         ax1.set_title('Truncation Scores for K ='+str(binWidth))
         ax1.set_xticks(ind)
-        print feature_sets
+        print(feature_sets)
         labels = ["Top-k= " + str(int(x.split('_')[3])) + "\n(PerFlow = " + str(int(x.split('_')[3])*4) + " B)" + "\n(CGMem = " + str((n_flows * int(x.split('_')[3]) * 4)/1024) + " KB)" for x in feature_sets]
         labels[len(topk_features)-1] = str(int(1500/binWidth)) + " features\n(PerFlow = " + str(int(1500/binWidth)*4) + " B)" + "\n(CGMem = " + str(int((n_flows * int(1500/binWidth) * 4)/1024)) + " KB)"
         ax1.set_xticklabels(labels)
@@ -228,7 +228,7 @@ def PlotKQuantizationAndTruncation(binWidths, topk_features, n_flows):
         plt.close(fig)
 
 def PlotKQuantizationAndTruncationLines(binWidths, topk_features, n_flows):
-    print "PlotKQuantizationAndTruncation"
+    print("PlotKQuantizationAndTruncation")
     if not os.path.exists('Figures/Truncation_comparison'):
         os.makedirs('Figures/Truncation_comparison')
 
@@ -279,7 +279,7 @@ def PlotKQuantizationAndTruncationLines(binWidths, topk_features, n_flows):
         ax1.yaxis.grid(color='black', linestyle='dotted')
 
         ax1.set_xticks(ind)
-        print feature_sets
+        print(feature_sets)
         labels = [str(int(x.split('_')[3])) for x in feature_sets]
         #labels = ["Top-n= " + str(int(x.split('_')[3])) + "\nPF = " + str(int(x.split('_')[3])*4) + " B" + "\nTM = " + str((n_flows * int(x.split('_')[3]) * 4)/1024) + " KB" for x in feature_sets]
         #labels[len(topk_features)-1] = str(int(1500/binWidth)) + " features\n(PF = " + str(int(1500/binWidth)*4) + " B)" + "\n(TMem = " + str(int((n_flows * int(1500/binWidth) * 4)/1024)) + " KB)"
