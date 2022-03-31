@@ -38,6 +38,7 @@ def runQuantization(dataset, traffic_capture, quantized_pcap_dataset_dir, binWid
 
 	quantized_csv = open(os.path.join(quantized_pcap_dataset_dir, traffic_capture[:-4] + "_" + str(binWidth) + "_" + str(ipt_bin_width) + ".csv"), "w")
 
+	# class label
 	malicious_ips = []
 	if(os.path.basename(dataset) == "Storm"):
 		malicious_ips = STORM_IPS

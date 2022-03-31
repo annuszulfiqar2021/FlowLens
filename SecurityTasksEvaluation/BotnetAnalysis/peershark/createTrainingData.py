@@ -2,16 +2,12 @@ from .P2P_CONSTANTS import *
 import os
 
 
-# some parameters to limit flow characteristics
-MAX_MTU = 1500
-MAX_IPT = 3600
-
-
 def runTrainingDataGenerator(super_flow_data_dir, training_data_dir, bin_width, ipt_bin_width):
 	#takes takes 50,000 examples and puts it in necessary format for training
 	csvfiles = []
 	if os.path.isdir(super_flow_data_dir):
-		csvfiles += getCSVFiles(super_flow_data_dir)
+		these_csvfiles, _ = getCSVFiles(super_flow_data_dir)
+		csvfiles += these_csvfiles
 
 	#print ".csv files to generate training data: %s"%(csvfiles)
 
@@ -29,24 +25,31 @@ def runTrainingDataGenerator(super_flow_data_dir, training_data_dir, bin_width, 
 			if float(fields[4])!=0 and float(fields[3])!=0 and float(fields[7])!=0:
 
 				# READ flow markers from input fields
-				# fields 0-11 are flow fields, 
-				next_field = 12
+				# fields 0-7 are superflow fields, 
+				next_field = 8
 
-				# onwards until self.quantized_pl_bin_upper_limit is the pl_flowmarker
-				pl_flow_marker = {}
-				for this_bin in range(1, quantized_pl_bin_upper_limit + 1):
-					pl_flow_marker[this_bin] = int(fields[next_field])
-					next_field += 1
+				# # onwards until self.quantized_pl_bin_upper_limit is the pl_flowmarker
+				# pl_flow_marker = {}
+				# for this_bin in range(1, quantized_pl_bin_upper_limit + 1):
+				# 	pl_flow_marker[this_bin] = int(fields[next_field])
+				# 	next_field += 1
 
-				# then afterwards, all fields are self.quantized_ipt_bin_upper_limit
-				ipt_flow_marker = {}
-				for this_bin in range(1, quantized_ipt_bin_upper_limit + 1):
-					ipt_flow_marker[this_bin] = int(fields[next_field])
-					next_field += 1
+				# # then afterwards, all fields are self.quantized_ipt_bin_upper_limit
+				# ipt_flow_marker = {}
+				# for this_bin in range(1, quantized_ipt_bin_upper_limit + 1):
+				# 	ipt_flow_marker[this_bin] = int(fields[next_field])
+				# 	next_field += 1
 
-				# convert the above flow markers to strings that we can write to csv
-				pl_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in pl_flow_marker.items()])
-				ipt_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in ipt_flow_marker.items()])
+				# # convert the above flow markers to strings that we can write to csv
+				# pl_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in pl_flow_marker.items()])
+				# ipt_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in ipt_flow_marker.items()])
+
+				pl_fields = fields[next_field:next_field+quantized_pl_bin_upper_limit+1]
+				pl_flow_marker_str = ",".join(pl_fields)
+				next_field = next_field + quantized_pl_bin_upper_limit + 1
+
+				ipt_fields = fields[next_field:next_field+quantized_ipt_bin_upper_limit+1]
+				ipt_flow_marker_str = ",".join(ipt_fields)
 
 				outfile.write(
 					fields[2] + ',' +

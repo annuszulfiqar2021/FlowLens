@@ -8,7 +8,7 @@
 #     done
 # done
 
-for BIN_WIDTH in 16; do
+for BIN_WIDTH in 32; do
     for IPT_BIN_WIDTH in 64; do
         python $1 --parentdir $2 --QL_PL $BIN_WIDTH --QL_IPT $IPT_BIN_WIDTH
     done

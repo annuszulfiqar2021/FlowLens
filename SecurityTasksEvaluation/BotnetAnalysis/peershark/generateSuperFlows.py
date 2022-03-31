@@ -8,7 +8,7 @@ import os
 
 def runGenerateSuperFlows(flow_data_dir, super_flow_data_dir, flowgap, bin_width, ipt_bin_width):
 	#TIMEGAP IN SECONDS
-	csvfiles = getCSVFiles(flow_data_dir)
+	csvfiles, class_label = getCSVFiles(flow_data_dir)
 	#print csvfiles
 
 	flowdata = []

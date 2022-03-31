@@ -1,3 +1,4 @@
+from .P2P_CONSTANTS import *
 from .Packet import *
 
 #input: list of packets, timegap - real number
@@ -6,7 +7,9 @@ from .Packet import *
 #merges collection of packets(objects) into collection of flows(many-to-one)
 #Working: group packets with same ip-pair(direction irrelevant) and merge all packets for
 #which |packet1.time - packet2.time| < threshold(timegap)
-def packetsToFlows(packets, timegap, bin_width, ipt_bin_width):
+
+# per_pkt_hist_filename is the file where we fill per-packet histograms with each incoming packet
+def packetsToFlows(packets, class_label, per_pkt_hist_filename, timegap, bin_width, ipt_bin_width):
 	#sanity check for 0 packets 
 	if len(packets) == 0:
 		return None
@@ -19,17 +22,29 @@ def packetsToFlows(packets, timegap, bin_width, ipt_bin_width):
 	packets.sort(key = lambda packet:packet.timestamp)
 	packets.sort(key = lambda packet:packet.key)
 	
-	nextflow = Flow(None, bin_width, ipt_bin_width)
-	for nextpacket in packets:
-		#if ip-pairs dont match or time-difference of prev and current packet greater
-		#than timegap, create a new flow 
-		if (nextflow.key != nextpacket.key) or ((nextpacket.timestamp - nextflow.getEnd()) > timegap):
-			nextflow = Flow(nextpacket, bin_width, ipt_bin_width)
-			outputflows.append(nextflow)
-		#if not then add packet to previous flow
-		else:
-			nextflow.addPacket(nextpacket)
+	# quantize the timegap according to ipt_bin_width
+	timegap	= timegap # // ipt_bin_width
 
+	to_write = []
+	# open per-pkt histogram file to write into..
+	with open(per_pkt_hist_filename, 'w') as per_pkt_csvfile:
+		nextflow = Flow(None, bin_width, ipt_bin_width)
+		for nextpacket in packets:
+			#if ip-pairs dont match or time-difference of prev and current packet greater
+			#than timegap, create a new flow 
+			if (nextflow.key != nextpacket.key) or ((nextpacket.timestamp - nextflow.getEnd()) > timegap):
+				nextflow = Flow(nextpacket, bin_width, ipt_bin_width)
+				outputflows.append(nextflow)
+			#if not then add packet to previous flow
+			else:
+				nextflow.addPacket(nextpacket)
+			# pick this running flow's current flow markers with this packet just added
+			per_pkt_pl_flow_marker_str, per_pkt_ipt_flow_marker_str = nextflow.getFlowMarkersAsCommaSeparatedStrings()
+			# append the next string to be written for this flow
+			to_write.append(per_pkt_pl_flow_marker_str + ',' + per_pkt_ipt_flow_marker_str + ',' + class_label)
+		# write these to the per-pkt histogram file
+		per_pkt_csvfile.write("\n".join(to_write))
+		per_pkt_csvfile.close()
 	return outputflows
 
 #same as function packetsToFlow but merges flows instead of packets
@@ -42,6 +57,9 @@ def combineFlows(flows, flowgap, bin_width, ipt_bin_width):
 	flows.sort(key = lambda flow:flow.getStart())
 	flows.sort(key = lambda flow:flow.key)
 	
+	# quantize the flowgap according to ipt_bin_width
+	flowgap	= flowgap # // ipt_bin_width
+
 	nextoutflow = Flow(None, bin_width, ipt_bin_width)
 	for nextflow in flows:
 		if (nextoutflow.key != nextflow.key) or ((nextflow.getStart() - nextoutflow.getEnd()) > flowgap):
@@ -72,8 +90,9 @@ def writeFlowsToFile(flowlist, filename):
 	
 	to_write = []
 	for flow in flowlist:
-		pl_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in flow.pl_flow_marker.items()])
-		ipt_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in flow.ipt_flow_marker.items()])
+		# pl_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in flow.pl_flow_marker.items()])
+		# ipt_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in flow.ipt_flow_marker.items()])
+		pl_flow_marker_str, ipt_flow_marker_str = flow.getFlowMarkersAsCommaSeparatedStrings()
 		to_write.append(
 			socket.inet_ntoa(flow.ip1) + ',' +
 			socket.inet_ntoa(flow.ip2) + ',' +
@@ -98,16 +117,12 @@ def writeFlowsToFile(flowlist, filename):
 class Flow:
 	#constructor of default flow
 	def __init__(self, firstpacket, bin_width, ipt_bin_width):
-		
-		# some parameters to limit flow characteristics
-		self.MAX_MTU = 1500
-		self.MAX_IPT = 3600
-		
+		global MAX_MTU, MAX_IPT
 		# initialize the parameters for this flow's flow marker
 		self.bin_width = bin_width
 		self.ipt_bin_width = ipt_bin_width
-		self.quantized_pl_bin_upper_limit = self.MAX_MTU // self.bin_width
-		self.quantized_ipt_bin_upper_limit = self.MAX_IPT // self.ipt_bin_width
+		self.quantized_pl_bin_upper_limit = MAX_MTU // self.bin_width
+		self.quantized_ipt_bin_upper_limit = MAX_IPT // self.ipt_bin_width
 		self.pl_flow_marker = {key: 0 for key in range(1, self.quantized_pl_bin_upper_limit + 1)}
 		self.ipt_flow_marker = {key: 0 for key in range(1, self.quantized_ipt_bin_upper_limit + 1)}
 
@@ -173,6 +188,7 @@ class Flow:
 		else:
 			self.pl_flow_marker[quantized_pl] += 1
 
+		# print("quantized IPT = {0}".format(quantized_ipt))
 		# UPDATE the IPT flow marker while handling edge cases (less and greater than limits)
 		if quantized_ipt < 1:
 			self.ipt_flow_marker[1] += 1
@@ -221,7 +237,7 @@ class Flow:
 		if packet.source == self.ip1 and packet.dest == self.ip2:			
 			
 			# UPDATE the flow markers before updating flow end time
-			self.update_flow_markers(packet.timestamp, packet.size)
+			self.update_flow_markers(packet.size, packet.timestamp)
 
 			#initialize flow if not initialized
 			if self.n_packet1 == 0:
@@ -243,7 +259,7 @@ class Flow:
 		elif packet.source == self.ip2 and packet.dest == self.ip1:
 			
 			# UPDATE the flow markers before updating flow end time
-			self.update_flow_markers(packet.timestamp, packet.size)
+			self.update_flow_markers(packet.size, packet.timestamp)
 
 			#initialize flow if not initialized
 			if self.n_packet2 == 0:
@@ -301,3 +317,8 @@ class Flow:
 
 	def getEnd(self):
 		return max(self.t_end1, self.t_end2)
+
+	def getFlowMarkersAsCommaSeparatedStrings(self):
+		pl_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in self.pl_flow_marker.items()])
+		ipt_flow_marker_str = ",".join([str(this_bin_count) for this_bin, this_bin_count in self.ipt_flow_marker.items()])
+		return (pl_flow_marker_str, ipt_flow_marker_str)

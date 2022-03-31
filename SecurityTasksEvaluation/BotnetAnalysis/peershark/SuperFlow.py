@@ -1,6 +1,7 @@
+from .P2P_CONSTANTS import *
 from .Packet import *
-import socket
 from . import Flow
+import socket
 
 #get median of interarrival time
 def getMedian(vallist):
@@ -20,15 +21,13 @@ def getMedian(vallist):
 class SuperFlow(Flow.Flow):
 
 	def __init__(self, fields, bin_width, ipt_bin_width):
-		
-		# some parameters to limit flow characteristics
-		self.MAX_MTU = 1500
-		self.MAX_IPT = 3600
+		global MAX_MTU, MAX_IPT
+
 		# initialize the parameters for this flow's flow marker
 		self.bin_width = bin_width
 		self.ipt_bin_width = ipt_bin_width
-		self.quantized_pl_bin_upper_limit = self.MAX_MTU // self.bin_width
-		self.quantized_ipt_bin_upper_limit = self.MAX_IPT // self.ipt_bin_width
+		self.quantized_pl_bin_upper_limit = MAX_MTU // self.bin_width
+		self.quantized_ipt_bin_upper_limit = MAX_IPT // self.ipt_bin_width
 
 		if fields == None:
 			self.ip1 = None
