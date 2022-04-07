@@ -3,3 +3,5 @@
 *.csv
 *.pyc
 *.pkl
+Waledac_10k_*
+*.zip
