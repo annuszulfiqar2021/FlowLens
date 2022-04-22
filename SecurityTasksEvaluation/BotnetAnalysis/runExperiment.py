@@ -3,9 +3,10 @@ from peershark.generateSuperFlows import runGenerateSuperFlows
 from peershark.GenerateFlows import runGenerateFlows
 from peershark.P2P_CONSTANTS import *
 from quantize import QuantizeDataset
+from tf_dnn import DNN
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score # confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from joblib import dump, load
@@ -27,6 +28,13 @@ import csv
 import gc
 import os
 
+PL_HIST_LENGTH = 46
+IPT_HIST_LENGTH = 56
+
+CLASS_LABELS = {
+	"benign": 		[1, 0],
+	"malicious": 	[0, 1]
+}
 
 def GetPerPktHistDataset(perPacketHists_dir):
 
@@ -56,11 +64,10 @@ def GetPerPktHistDataset(perPacketHists_dir):
 					print("Reading {0} for per-packet histogram samples".format(PktHistCSV))
 					with open(PktHistCSV) as this_file:
 						reader = csv.reader(this_file)
-						# chosen_rows = random.sample(list(reader), 10000)
-						chosen_rows = reader
-						for row in chosen_rows:
+						for row in reader:
 							# only pick the bin attributes, not the high-level flow attributes
 							attributes.append(row[:-1])
+							# attributes.append(row[:PL_HIST_LENGTH]) # pick only packet size bin fields
 							labels.append(row[-1])
 
 		# the dataset is too huge! No point of saving as pickle
@@ -82,11 +89,13 @@ def GetPerPktHistDatasetFromFile(this_file_path):
 	print("Reading {0} for per-packet histogram samples".format(this_file_path))
 	with open(this_file_path) as this_file:
 		all_rows = csv.reader(this_file)
+		# pick random samples for quick testing
+		# print(type(all_rows))
 		for row in all_rows:
 			# only pick the bin attributes, not the high-level flow attributes
-			attributes.append(row[:-1])
-			labels.append(row[-1])
-
+			attributes.append(list(map(int, row[:-1])))
+			# attributes.append(row[:PL_HIST_LENGTH]) # pick only packet size bin fields
+			labels.append(CLASS_LABELS[row[-1]])
 	#Split data in 0% train, 100% test
 	_, test_x, _, test_y = train_test_split(attributes, labels, test_size=0.99, random_state=42, stratify=labels)
 	return (test_x, test_y)
@@ -95,11 +104,29 @@ def GetPerPktHistDatasetFromFile(this_file_path):
 def RunClassification(model, test_x, test_y):
 	#Perform predictions
 	print("Test_X size = {0}, Test_Y size = {1}".format(np.asarray(test_x).shape, np.asarray(test_y).shape))
-	predictions = model.predict(np.asarray(test_x))
+	# predictions = model.predict(np.asarray(test_x))
+
+	# Perform test predictions
+	confusion_matrix = model.evaluate(test_x, test_y)
+
+	# confusion_matrix = [
+	# 		[TP, FP],
+	#		[FN, TN]
+	# ]
+
+	TP_BENIGN = confusion_matrix[0][0]
+	FP_BENIGN = confusion_matrix[0][1]
+	FN_BENIGN = confusion_matrix[1][0]
+	TN_BENIGN = confusion_matrix[1][1]
+	TP_MALICIOUS = confusion_matrix[1][1]
+	FP_MALICIOUS = confusion_matrix[1][0]
+	FN_MALICIOUS = confusion_matrix[0][1]
+	TN_MALICIOUS = confusion_matrix[0][0]
+
 	#Generate metrics (benign)
-	TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN = confusion_matrix(np.asarray(test_y), predictions, labels=["malicious","benign"]).ravel()
+	# TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN = confusion_matrix(np.asarray(test_y), predictions, labels=["malicious","benign"]).ravel()
 	#Generate metrics (malicious)
-	TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS = confusion_matrix(np.asarray(test_y), predictions, labels=["benign","malicious"]).ravel()
+	# TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS = confusion_matrix(np.asarray(test_y), predictions, labels=["benign","malicious"]).ravel()
 	return ((TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN), (TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS))
 
 
@@ -108,7 +135,7 @@ def print_metrics(TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN, TN_MALICIOUS, FP_M
 	FPR_BENIGN = float(FP_BENIGN)/(float(FP_BENIGN)+float(TN_BENIGN)) if (float(FP_BENIGN)+float(TN_BENIGN)) else 0
 	RECALL_BENIGN = float(TP_BENIGN)/(float(TP_BENIGN) + float(FN_BENIGN)) if (float(TP_BENIGN) + float(FN_BENIGN)) else 0
 	PRECISION_BENIGN = float(TP_BENIGN)/(float(TP_BENIGN) + float(FP_BENIGN)) if (float(TP_BENIGN) + float(FP_BENIGN)) else 0
-	F1_BENIGN = 2*PRECISION_BENIGN*RECALL_BENIGN / (PRECISION_BENIGN+RECALL_BENIGN)
+	F1_BENIGN = 2*PRECISION_BENIGN*RECALL_BENIGN / (PRECISION_BENIGN+RECALL_BENIGN+1e-3)
 
 	print("Model Precision (benign): " + "{0:.3f}".format(PRECISION_BENIGN))
 	print("Model Recall (benign): " + "{0:.3f}".format(RECALL_BENIGN))
@@ -118,7 +145,7 @@ def print_metrics(TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN, TN_MALICIOUS, FP_M
 	FPR_MALICIOUS = float(FP_MALICIOUS)/(float(FP_MALICIOUS)+float(TN_MALICIOUS)) if (float(FP_MALICIOUS)+float(TN_MALICIOUS)) else 0
 	RECALL_MALICIOUS = float(TP_MALICIOUS)/(float(TP_MALICIOUS) + float(FN_MALICIOUS)) if (float(TP_MALICIOUS) + float(FN_MALICIOUS)) else 0
 	PRECISION_MALICIOUS = float(TP_MALICIOUS)/(float(TP_MALICIOUS) + float(FP_MALICIOUS)) if (float(TP_MALICIOUS) + float(FP_MALICIOUS)) else 0
-	F1_MALICIOUS = 2*PRECISION_MALICIOUS*RECALL_MALICIOUS / (PRECISION_MALICIOUS+RECALL_MALICIOUS)
+	F1_MALICIOUS = 2*PRECISION_MALICIOUS*RECALL_MALICIOUS / (PRECISION_MALICIOUS+RECALL_MALICIOUS+1e-3)
 
 	print("Model Precision (malicious): " + "{0:.3f}".format(PRECISION_MALICIOUS))
 	print("Model Recall (malicious): " + "{0:.3f}".format(RECALL_MALICIOUS))
@@ -141,8 +168,9 @@ def Classify(parentdir, per_pkt_hist_dir, training_data_dir, binWidth, ipt_bin_w
 			else:
 				# only pick the bin attributes, not the high-level flow attributes
 				# attributes.append(row[:-1])
-				attributes.append(row[4:-1])
-				labels.append(row[-1])
+				attributes.append(list(map(int, row[4:-1])))
+				# attributes.append(row[4:4+PL_HIST_LENGTH]) # pick only packet size bin fields
+				labels.append(CLASS_LABELS[row[-1]])
 		
 		#Split data in 66% train, 33% test
 		train_x, test_x, train_y, test_y = train_test_split(attributes, labels, test_size=0.33, random_state=42, stratify=labels)
@@ -152,18 +180,52 @@ def Classify(parentdir, per_pkt_hist_dir, training_data_dir, binWidth, ipt_bin_w
 																								np.asarray(test_x).shape, 
 																								np.asarray(test_y).shape))
 
+		print(train_x[0], train_y[0], test_x[0], test_y[0])
 		#Define classifier
 		# classifier = RandomForestClassifier(random_state=42)
-		classifier = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(10, 10, 10, 10), random_state=1)
+		# classifier = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(10, 10, 10, 10), random_state=1)
+		arch = [10, 10, 10, 10]
+		model = DNN("botnet_dnn", arch, len(train_x[0]), 2, "F1")
+		model.build()
 
 		#Train classifier
-		model = classifier.fit(np.asarray(train_x), np.asarray(train_y))
-
-		#Perform predictions
+		# model = classifier.fit(np.asarray(train_x), np.asarray(train_y))
+		model.train(train_x, train_y, 10, 512)
+		
+		#Perform test predictions
+		# confusion_matrix = model.evaluate(test_x, test_y)
 		((TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN), (TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS)) = RunClassification(model, test_x, test_y)
+
+		####################################################################################################
+		# get weights of the trained model
+		print("Saving trained weights now..")
+		luts_path = os.path.join(training_data_dir, 'luts')
+		if not os.path.exists(luts_path):
+			os.mkdir(luts_path)
+		else:
+			shutil.rmtree(luts_path)
+			os.mkdir(luts_path)
+		# write weights to luts files
+		model.WriteModel(luts_path)
+
+		# weights, biases = model.coefs_, model.intercepts_
+		# for idx in range(len(weights)):
+		# 	print("At layer - {0}".format(idx+1))
+		# 	this_layer_weights_path = os.path.join(luts_path, "L{0}_NEURON_W_LUT.csv".format(idx))
+		# 	this_layer_biases_path = os.path.join(luts_path, "L{0}_NEURON_B_LUT.csv".format(idx))
+		# 	# with open(this_layer_weights_path):
+		# 	print(weights[idx].shape, biases[idx].shape)
+		# 	np.savetxt(this_layer_weights_path, weights[idx], delimiter=",", fmt='%f')
+		# 	np.savetxt(this_layer_biases_path, biases[idx], delimiter=",", fmt='%f')
+
+		# ((TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN), (TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS)) = RunClassification(model, test_x, test_y)
 
 		# get metrics for benign/malicious class
 		print_metrics(TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN, TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS)
+
+		# stop here
+		# exit(0)
+		####################################################################################################
 
 		# results_file = open(os.path.join(parentdir, "classificationResults", "results.csv"), "a")
 		# results_file.write("{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n".format(
@@ -179,6 +241,17 @@ def Classify(parentdir, per_pkt_hist_dir, training_data_dir, binWidth, ipt_bin_w
 		# results_file.flush()
 		# results_file.close()
 		
+		# print("LOADING CUSTOM HOMUNCULUS MODEL")
+		# # load custom model (homunculus trained model for testing)
+		# # arch = [10, 10, 10, 10] # test original model
+		# # bad_arch_with_all_zeros = [7, 8, 1, 7, 1, 7, 6, 2, 7, 9]
+		# arch = [7, 2, 5, 4, 1, 4, 7, 3, 7, 1]
+		# custom_luts_path = os.path.join(training_data_dir, 'homunculus-luts')
+		# model = DNN("homunculus_botnet_dnn", arch, 30, 2, "F1")
+		# model.build()
+		# model.load_custom_model_from_CSVs(custom_luts_path)
+		# # print(model.getModelLayers())
+
 		print("################################################################################################################################################")
 		
 		print("Reading per-packet histograms now..")
@@ -190,6 +263,9 @@ def Classify(parentdir, per_pkt_hist_dir, training_data_dir, binWidth, ipt_bin_w
 			os.path.join(per_pkt_hist_dir, "Storm"),
 			os.path.join(per_pkt_hist_dir, "Waledac")
 		]
+		# dataset_dirs = [
+		# 	per_pkt_hist_dir + "/../homunculus-test-csv"
+		# ]
 		attributes, labels = [], []
 		
 		# our net results will be in here
@@ -214,17 +290,14 @@ def Classify(parentdir, per_pkt_hist_dir, training_data_dir, binWidth, ipt_bin_w
 				# reset as a sanity check
 				TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN = None, None, None, None
 				TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS = None, None, None, None
-				
-				# get the dataset from just this one file
+					
 				per_pkt_test_x, per_pkt_test_y = GetPerPktHistDatasetFromFile(PktHistCSV)
-				
+
 				# append arguments for this prediction
 				# arguments.append((model, per_pkt_test_x, per_pkt_test_y))
 
 				# do prediction on this set
-				(TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN), (TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS) = RunClassification(model, 
-																																			per_pkt_test_x, 
-																																			per_pkt_test_y)
+				(TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN), (TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS) = RunClassification(model, per_pkt_test_x, per_pkt_test_y)
 
 				# print the metrics for this file
 				print_metrics(TN_BENIGN, FP_BENIGN, FN_BENIGN, TP_BENIGN, TN_MALICIOUS, FP_MALICIOUS, FN_MALICIOUS, TP_MALICIOUS)
@@ -261,7 +334,7 @@ def Classify(parentdir, per_pkt_hist_dir, training_data_dir, binWidth, ipt_bin_w
 				# print("Per-Packet Model Precision (malicious): " + "{0:.3f}".format(PRECISION_MALICIOUS))
 				# print("Per-Packet Model Recall (malicious): " + "{0:.3f}".format(RECALL_MALICIOUS))
 				# print("Per-Packet Model FPR (malicious): " + "{0:.3f}".format(FPR_MALICIOUS))
-				# print("")
+				# print(""))
 
 		# # we are using a Pool to manage all our test sets in parallel
 		# # spawn a pool of processes
